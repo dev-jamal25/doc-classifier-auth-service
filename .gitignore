@@ -18,9 +18,9 @@ htmlcov/
 *.pkl
 *.pth
 # but DO commit weights via LFS - exception below
-!app/classifier/models/*.pt
+!backend/app/classifier/models/*.pt
 # data
 data/
 *.tif
 *.tiff
-!app/classifier/eval/golden_images/*.tif
+!backend/app/classifier/eval/golden_images/*.tif

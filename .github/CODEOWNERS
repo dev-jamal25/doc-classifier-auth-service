@@ -2,25 +2,26 @@
 *                                @<your-github-handle>
 
 # Service / API (you)
-/app/api/                        @<you>
-/app/services/                   @<you>
-/app/repositories/               @<you>
-/app/domain/                     @<you>
-/app/db/                         @<you>
-/app/core/                       @<you>
+/backend/app/api/                @<you>
+/backend/app/services/           @<you>
+/backend/app/repositories/       @<you>
+/backend/app/domain/             @<you>
+/backend/app/db/                 @<you>
+/backend/app/core/               @<you>
 /SECURITY.md                     @<you>
 
 # Ingestion pipeline
-/app/infra/sftp.py               @<ingestion-teammate>
-/app/infra/blob.py               @<ingestion-teammate>
-/app/infra/queue.py              @<ingestion-teammate>
-/docker/sftp-ingest.Dockerfile   @<ingestion-teammate>
-/docker/worker.Dockerfile        @<ingestion-teammate>
+/backend/app/infra/sftp.py       @<ingestion-teammate>
+/backend/app/infra/blob.py       @<ingestion-teammate>
+/backend/app/infra/queue.py      @<ingestion-teammate>
+/backend/docker/sftp-ingest.Dockerfile @<ingestion-teammate>
+/backend/docker/worker.Dockerfile @<ingestion-teammate>
 
 # Classifier
-/app/classifier/                 @<classifier-teammate>
+/backend/app/classifier/         @<classifier-teammate>
 
 # Shared (anyone - but require review)
 /docker-compose.yml              @<you> @<ingestion-teammate> @<classifier-teammate>
 /.github/workflows/              @<you>
-/pyproject.toml                  @<you> @<ingestion-teammate> @<classifier-teammate>
+/backend/pyproject.toml          @<you> @<ingestion-teammate> @<classifier-teammate>
+/frontend/                       @TBD

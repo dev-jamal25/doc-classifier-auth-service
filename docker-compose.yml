@@ -1,0 +1,26 @@
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: docker/api.Dockerfile
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: docker/worker.Dockerfile
+
+  sftp-ingest:
+    build:
+      context: ./backend
+      dockerfile: docker/sftp-ingest.Dockerfile
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: docker/migrate.Dockerfile
+
+  # frontend:
+  #   # TODO: choose framework (React vs Streamlit) before enabling.
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile

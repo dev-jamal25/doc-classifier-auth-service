@@ -1,0 +1,26 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.idea/
+.vscode/
+.DS_Store
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+# never commit big artifacts
+*.pkl
+*.pth
+# but DO commit weights via LFS - exception below
+!app/classifier/models/*.pt
+# data
+data/
+*.tif
+*.tiff
+!app/classifier/eval/golden_images/*.tif

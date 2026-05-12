@@ -2,26 +2,26 @@
 *                                @<your-github-handle>
 
 # Service / API (you)
-/backend/app/api/                @<you>
-/backend/app/services/           @<you>
-/backend/app/repositories/       @<you>
-/backend/app/domain/             @<you>
-/backend/app/db/                 @<you>
-/backend/app/core/               @<you>
-/SECURITY.md                     @<you>
+/backend/app/api/                dev-jamal25
+/backend/app/services/           dev-jamal25 bmislol xgiberish
+/backend/app/repositories/       dev-jamal25
+/backend/app/domain/             dev-jamal25 bmislol
+/backend/app/db/                 dev-jamal25
+/backend/app/core/               dev-jamal25
+/SECURITY.md                     dev-jamal25
 
 # Ingestion pipeline
-/backend/app/infra/sftp.py       @<ingestion-teammate>
-/backend/app/infra/blob.py       @<ingestion-teammate>
-/backend/app/infra/queue.py      @<ingestion-teammate>
-/backend/docker/sftp-ingest.Dockerfile @<ingestion-teammate>
-/backend/docker/worker.Dockerfile @<ingestion-teammate>
+/backend/app/infra/sftp.py       bmislol
+/backend/app/infra/blob.py       bmislol
+/backend/app/infra/queue.py      bmislol
+/backend/docker/sftp-ingest.Dockerfile bmislol
+/backend/docker/worker.Dockerfile bmislol
 
 # Classifier
-/backend/app/classifier/         @<classifier-teammate>
+/backend/app/classifier/         xgiberish
 
 # Shared (anyone - but require review)
-/docker-compose.yml              @<you> @<ingestion-teammate> @<classifier-teammate>
-/.github/workflows/              @<you>
-/backend/pyproject.toml          @<you> @<ingestion-teammate> @<classifier-teammate>
+/docker-compose.yml              dev-jamal25 bmislol xgiberish
+/.github/workflows/              dev-jamal25
+/backend/pyproject.toml          dev-jamal25 bmislol xgiberish
 /frontend/                       @TBD

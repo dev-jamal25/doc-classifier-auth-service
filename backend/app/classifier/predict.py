@@ -117,7 +117,7 @@ def predict_pil_image(
             label_name=ID_TO_LABEL[int(label_id)],
             confidence=float(prob),
         )
-        for label_id, prob in zip(top_ids_list, top_probs_list)
+        for label_id, prob in zip(top_ids_list, top_probs_list, strict=True)
     )
     top1 = top5[0]
 

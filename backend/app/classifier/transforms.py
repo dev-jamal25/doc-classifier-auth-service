@@ -21,7 +21,6 @@ from torchvision import transforms
 
 from .constants import IMAGE_SIZE, IMAGENET_MEAN, IMAGENET_STD
 
-
 # Built once at module import. Constructing a Compose per call would be
 # wasteful and is also a footgun if anything in the pipeline ever becomes
 # stateful (e.g. a Normalize with running statistics).

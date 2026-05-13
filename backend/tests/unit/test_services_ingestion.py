@@ -92,7 +92,7 @@ def _sample_audit(batch_id) -> AuditLogEntry:
         action=AuditAction.BATCH_STATE_CHANGE,
         target_type="batch",
         target_id=batch_id,
-        before_value={"state": "pending"},
+        before_value=None,
         after_value={"state": "completed"},
         request_id=uuid4(),
         created_at=datetime.now(UTC),
@@ -157,8 +157,6 @@ async def test_create_failed_batch_calls_repo_and_invalidates_list() -> None:
 async def test_record_prediction_writes_prediction_updates_batch_audits_and_invalidates() -> None:
     session = _FakeSession()
     batch_id = uuid4()
-    pending_batch = _sample_batch(state=BatchState.PENDING)
-    pending_batch.id = batch_id
     created_prediction = _sample_prediction(batch_id)
     created_audit = _sample_audit(batch_id)
 
@@ -168,15 +166,13 @@ async def test_record_prediction_writes_prediction_updates_batch_audits_and_inva
     )
     batch_repo = SimpleNamespace(
         session=session,
-        get=AsyncMock(return_value=pending_batch),
         update_state=AsyncMock(return_value=_sample_batch(state=BatchState.COMPLETED)),
     )
-    audit_repo = SimpleNamespace(
-        session=session,
-        create=AsyncMock(return_value=created_audit),
+    audit_service = SimpleNamespace(
+        write_entry=AsyncMock(return_value=created_audit),
     )
     cache = _SpyInvalidator()
-    service = PredictionService(prediction_repo, batch_repo, audit_repo, cache)
+    service = PredictionService(prediction_repo, batch_repo, audit_service, cache)
 
     request_id = uuid4()
     top5 = [
@@ -212,13 +208,13 @@ async def test_record_prediction_writes_prediction_updates_batch_audits_and_inva
         new_state=BatchState.COMPLETED,
         failure_reason=None,
     )
-    audit_repo.create.assert_awaited_once_with(
+    audit_service.write_entry.assert_awaited_once_with(
         action=AuditAction.BATCH_STATE_CHANGE,
         actor_user_id=None,
         target_type="batch",
         target_id=batch_id,
-        before_value={"state": "pending"},
-        after_value={"state": "completed"},
+        before=None,
+        after={"state": "completed"},
         request_id=request_id,
     )
     assert cache.batch_detail_calls == [batch_id]
@@ -229,23 +225,19 @@ async def test_record_prediction_writes_prediction_updates_batch_audits_and_inva
 async def test_record_prediction_skips_invalidation_when_write_fails() -> None:
     session = _FakeSession()
     batch_id = uuid4()
-    pending_batch = _sample_batch(state=BatchState.PENDING)
-    pending_batch.id = batch_id
     prediction_repo = SimpleNamespace(
         session=session,
         create=AsyncMock(side_effect=RuntimeError("db write failed")),
     )
     batch_repo = SimpleNamespace(
         session=session,
-        get=AsyncMock(return_value=pending_batch),
         update_state=AsyncMock(),
     )
-    audit_repo = SimpleNamespace(
-        session=session,
-        create=AsyncMock(),
+    audit_service = SimpleNamespace(
+        write_entry=AsyncMock(),
     )
     cache = _SpyInvalidator()
-    service = PredictionService(prediction_repo, batch_repo, audit_repo, cache)
+    service = PredictionService(prediction_repo, batch_repo, audit_service, cache)
 
     with pytest.raises(RuntimeError, match="db write failed"):
         await service.record_prediction(

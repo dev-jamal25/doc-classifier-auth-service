@@ -1,6 +1,5 @@
 import json
 import sys
-from pathlib import Path
 
 from app.classifier.constants import GOLDEN_EXPECTED_PATH, GOLDEN_IMAGES_DIR
 from app.classifier.predict import predict_image_path

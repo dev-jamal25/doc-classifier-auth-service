@@ -23,10 +23,10 @@
     ],
     "expected_top5_confidences": [
       0.9905509948730469,
-      0.004967577289789915,
-      0.0025008865632116795,
-      0.000511578400619328,
-      0.0004714362439699471
+      0.004967615474015474,
+      0.002500898437574506,
+      0.0005115815438330173,
+      0.00047143734991550446
     ],
     "top1_top2_margin": 0.985583417583257,
     "selection_reason": "representative_median_confidence",
@@ -56,10 +56,10 @@
     ],
     "expected_top5_confidences": [
       0.9999997615814209,
-      5.3706333602576706e-08,
+      5.370643663127339e-08,
       4.9612673080901004e-08,
       4.7197122654552004e-08,
-      3.176016605266341e-08
+      3.176010565653087e-08
     ],
     "top1_top2_margin": 0.9999997078750873,
     "selection_reason": "easy_high_confidence",
@@ -72,7 +72,7 @@
     "true_label": "resume",
     "expected_label_id": 14,
     "expected_label": "resume",
-    "expected_top1_confidence": 0.9999889135360718,
+    "expected_top1_confidence": 0.9999887943267822,
     "expected_top5_label_ids": [
       14,
       5,
@@ -88,11 +88,11 @@
       "questionnaire"
     ],
     "expected_top5_confidences": [
-      0.9999889135360718,
-      9.736130778037477e-06,
-      5.308783102009329e-07,
-      2.1095765134759858e-07,
-      1.91810414662541e-07
+      0.9999887943267822,
+      9.736129868542776e-06,
+      5.308792765390535e-07,
+      2.1095763713674387e-07,
+      1.9181130994638806e-07
     ],
     "top1_top2_margin": 0.9999791774052937,
     "selection_reason": "representative_median_confidence",
@@ -105,7 +105,7 @@
     "true_label": "news_article",
     "expected_label_id": 9,
     "expected_label": "news_article",
-    "expected_top1_confidence": 0.4997067451477051,
+    "expected_top1_confidence": 0.49970656633377075,
     "expected_top5_label_ids": [
       9,
       6,
@@ -121,11 +121,11 @@
       "scientific_report"
     ],
     "expected_top5_confidences": [
-      0.4997067451477051,
-      0.4954315721988678,
-      0.0025332877412438393,
-      0.0007911611464805901,
-      0.0006180487107485533
+      0.49970656633377075,
+      0.4954318702220917,
+      0.0025332868099212646,
+      0.0007911616121418774,
+      0.0006180484197102487
     ],
     "top1_top2_margin": 0.00427517294883728,
     "selection_reason": "hard_correct_small_margin",
@@ -138,7 +138,7 @@
     "true_label": "scientific_report",
     "expected_label_id": 5,
     "expected_label": "scientific_report",
-    "expected_top1_confidence": 0.255359947681427,
+    "expected_top1_confidence": 0.25535908341407776,
     "expected_top5_label_ids": [
       5,
       1,
@@ -154,11 +154,11 @@
       "presentation"
     ],
     "expected_top5_confidences": [
-      0.255359947681427,
-      0.25194111466407776,
-      0.21492141485214233,
-      0.1409170925617218,
-      0.10592476278543472
+      0.25535908341407776,
+      0.25194114446640015,
+      0.2149220108985901,
+      0.14091742038726807,
+      0.10592463612556458
     ],
     "top1_top2_margin": 0.003418833017349243,
     "selection_reason": "extra_ambiguous_correct_from_weak_or_confused_class",
@@ -171,7 +171,7 @@
     "true_label": "handwritten",
     "expected_label_id": 3,
     "expected_label": "handwritten",
-    "expected_top1_confidence": 0.38649606704711914,
+    "expected_top1_confidence": 0.3864942789077759,
     "expected_top5_label_ids": [
       3,
       1,
@@ -187,11 +187,11 @@
       "invoice"
     ],
     "expected_top5_confidences": [
-      0.38649606704711914,
-      0.378879576921463,
-      0.12993201613426208,
-      0.05593105033040047,
-      0.03309226408600807
+      0.3864942789077759,
+      0.3788812756538391,
+      0.12993188202381134,
+      0.05593113973736763,
+      0.03309235721826553
     ],
     "top1_top2_margin": 0.007616490125656128,
     "selection_reason": "hard_correct_small_margin",
@@ -221,10 +221,10 @@
     ],
     "expected_top5_confidences": [
       0.9965636134147644,
-      0.0019809280056506395,
-      0.0003396193205844611,
-      0.00025196047499775887,
-      0.0002180386654799804
+      0.001980919623747468,
+      0.00033961786539293826,
+      0.0002519593108445406,
+      0.0002180380397476256
     ],
     "top1_top2_margin": 0.9945826854091138,
     "selection_reason": "representative_median_confidence",
@@ -254,10 +254,10 @@
     ],
     "expected_top5_confidences": [
       0.9955915808677673,
-      0.002875629812479019,
-      0.0009749496239237487,
-      0.0004600167158059776,
-      3.843314334517345e-05
+      0.0028756430838257074,
+      0.000974952825345099,
+      0.00046001802547834814,
+      3.8433321606134996e-05
     ],
     "top1_top2_margin": 0.9927159510552883,
     "selection_reason": "representative_median_confidence",
@@ -287,10 +287,10 @@
     ],
     "expected_top5_confidences": [
       0.9999808073043823,
-      1.560809869260993e-05,
-      1.3581758366854046e-06,
-      9.520439903099032e-07,
-      4.1253528593188094e-07
+      1.560812961542979e-05,
+      1.3581824305219925e-06,
+      9.520493904346949e-07,
+      4.1253568383581296e-07
     ],
     "top1_top2_margin": 0.9999651992056897,
     "selection_reason": "easy_high_confidence",
@@ -303,7 +303,7 @@
     "true_label": "form",
     "expected_label_id": 1,
     "expected_label": "form",
-    "expected_top1_confidence": 0.23320376873016357,
+    "expected_top1_confidence": 0.23320381343364716,
     "expected_top5_label_ids": [
       1,
       10,
@@ -319,11 +319,11 @@
       "presentation"
     ],
     "expected_top5_confidences": [
-      0.23320376873016357,
-      0.23115582764148712,
-      0.22536009550094604,
-      0.19330306351184845,
-      0.058732375502586365
+      0.23320381343364716,
+      0.23115642368793488,
+      0.2253592163324356,
+      0.1933029294013977,
+      0.05873261019587517
     ],
     "top1_top2_margin": 0.0020479410886764526,
     "selection_reason": "hard_correct_small_margin",
@@ -336,7 +336,7 @@
     "true_label": "scientific_publication",
     "expected_label_id": 6,
     "expected_label": "scientific_publication",
-    "expected_top1_confidence": 0.49957478046417236,
+    "expected_top1_confidence": 0.49957406520843506,
     "expected_top5_label_ids": [
       6,
       9,
@@ -352,11 +352,11 @@
       "presentation"
     ],
     "expected_top5_confidences": [
-      0.49957478046417236,
-      0.49672365188598633,
-      0.0017518728272989392,
-      0.0009793225908651948,
-      0.0003215139440726489
+      0.49957406520843506,
+      0.49672436714172363,
+      0.001751869567669928,
+      0.0009793201461434364,
+      0.0003215133328922093
     ],
     "top1_top2_margin": 0.002851128578186035,
     "selection_reason": "hard_correct_small_margin",
@@ -369,7 +369,7 @@
     "true_label": "email",
     "expected_label_id": 2,
     "expected_label": "email",
-    "expected_top1_confidence": 0.3242579698562622,
+    "expected_top1_confidence": 0.3242562711238861,
     "expected_top5_label_ids": [
       2,
       15,
@@ -385,11 +385,11 @@
       "presentation"
     ],
     "expected_top5_confidences": [
-      0.3242579698562622,
-      0.30961692333221436,
-      0.23508229851722717,
-      0.057964958250522614,
-      0.028383010998368263
+      0.3242562711238861,
+      0.30961722135543823,
+      0.23508329689502716,
+      0.05796512961387634,
+      0.02838313579559326
     ],
     "top1_top2_margin": 0.014641046524047852,
     "selection_reason": "hard_correct_small_margin",
@@ -402,7 +402,7 @@
     "true_label": "questionnaire",
     "expected_label_id": 13,
     "expected_label": "questionnaire",
-    "expected_top1_confidence": 0.29246827960014343,
+    "expected_top1_confidence": 0.29246845841407776,
     "expected_top5_label_ids": [
       13,
       12,
@@ -418,11 +418,11 @@
       "form"
     ],
     "expected_top5_confidences": [
-      0.29246827960014343,
-      0.29146602749824524,
-      0.17846763134002686,
-      0.13425734639167786,
-      0.03552904352545738
+      0.29246845841407776,
+      0.29146578907966614,
+      0.17846766114234924,
+      0.13425767421722412,
+      0.03552895411849022
     ],
     "top1_top2_margin": 0.0010022521018981934,
     "selection_reason": "hard_correct_small_margin",
@@ -452,10 +452,10 @@
     ],
     "expected_top5_confidences": [
       0.9999936819076538,
-      1.5173403653534479e-06,
-      1.2395748854032718e-06,
-      1.2207250392748392e-06,
-      8.680052019371942e-07
+      1.5173432075243909e-06,
+      1.2395726116665173e-06,
+      1.220722651851247e-06,
+      8.680019618623191e-07
     ],
     "top1_top2_margin": 0.9999921645672885,
     "selection_reason": "easy_high_confidence",
@@ -485,10 +485,10 @@
     ],
     "expected_top5_confidences": [
       0.9979288578033447,
-      0.0015060516307130456,
-      0.00038560215034522116,
-      7.623023702763021e-05,
-      2.0823181330342777e-05
+      0.0015060638543218374,
+      0.0003856047405861318,
+      7.623066630912945e-05,
+      2.082325954688713e-05
     ],
     "top1_top2_margin": 0.9964228061726317,
     "selection_reason": "representative_median_confidence",
@@ -501,7 +501,7 @@
     "true_label": "budget",
     "expected_label_id": 10,
     "expected_label": "budget",
-    "expected_top1_confidence": 0.28967955708503723,
+    "expected_top1_confidence": 0.2896799147129059,
     "expected_top5_label_ids": [
       10,
       11,
@@ -517,11 +517,11 @@
       "presentation"
     ],
     "expected_top5_confidences": [
-      0.28967955708503723,
-      0.2892061173915863,
-      0.13116393983364105,
-      0.09043127298355103,
-      0.04969607666134834
+      0.2896799147129059,
+      0.2892046570777893,
+      0.13116462528705597,
+      0.09043143689632416,
+      0.049696169793605804
     ],
     "top1_top2_margin": 0.00047343969345092773,
     "selection_reason": "hard_correct_small_margin",
@@ -534,7 +534,7 @@
     "true_label": "advertisement",
     "expected_label_id": 4,
     "expected_label": "advertisement",
-    "expected_top1_confidence": 0.27126258611679077,
+    "expected_top1_confidence": 0.27126309275627136,
     "expected_top5_label_ids": [
       4,
       13,
@@ -550,10 +550,10 @@
       "scientific_publication"
     ],
     "expected_top5_confidences": [
-      0.27126258611679077,
-      0.2606234550476074,
-      0.20138800144195557,
-      0.07936728000640869,
+      0.27126309275627136,
+      0.26062366366386414,
+      0.20138761401176453,
+      0.07936707139015198,
       0.0670764297246933
     ],
     "top1_top2_margin": 0.01063913106918335,
@@ -567,7 +567,7 @@
     "true_label": "specification",
     "expected_label_id": 7,
     "expected_label": "specification",
-    "expected_top1_confidence": 0.21657419204711914,
+    "expected_top1_confidence": 0.21657401323318481,
     "expected_top5_label_ids": [
       7,
       0,
@@ -583,11 +583,11 @@
       "form"
     ],
     "expected_top5_confidences": [
-      0.21657419204711914,
-      0.21651630103588104,
-      0.21572989225387573,
-      0.09335930645465851,
-      0.06505045294761658
+      0.21657401323318481,
+      0.21651655435562134,
+      0.2157292664051056,
+      0.09335963428020477,
+      0.06505057960748672
     ],
     "top1_top2_margin": 5.7891011238098145e-05,
     "selection_reason": "hard_correct_small_margin",
@@ -600,7 +600,7 @@
     "true_label": "form",
     "expected_label_id": 1,
     "expected_label": "form",
-    "expected_top1_confidence": 0.9505035281181335,
+    "expected_top1_confidence": 0.9505036473274231,
     "expected_top5_label_ids": [
       1,
       11,
@@ -616,11 +616,11 @@
       "questionnaire"
     ],
     "expected_top5_confidences": [
-      0.9505035281181335,
-      0.023811394348740578,
-      0.016319237649440765,
-      0.003905824152752757,
-      0.00187555025331676
+      0.9505036473274231,
+      0.0238114595413208,
+      0.01631927862763405,
+      0.0039057910908013582,
+      0.0018755585188046098
     ],
     "top1_top2_margin": 0.926692133769393,
     "selection_reason": "representative_median_confidence",
@@ -633,7 +633,7 @@
     "true_label": "memo",
     "expected_label_id": 15,
     "expected_label": "memo",
-    "expected_top1_confidence": 0.2118551880121231,
+    "expected_top1_confidence": 0.2118552178144455,
     "expected_top5_label_ids": [
       15,
       12,
@@ -649,11 +649,11 @@
       "resume"
     ],
     "expected_top5_confidences": [
-      0.2118551880121231,
-      0.20910672843456268,
-      0.20000380277633667,
-      0.15317320823669434,
-      0.06957758963108063
+      0.2118552178144455,
+      0.20910680294036865,
+      0.20000401139259338,
+      0.15317292511463165,
+      0.06957754492759705
     ],
     "top1_top2_margin": 0.002748459577560425,
     "selection_reason": "hard_correct_small_margin",
@@ -683,10 +683,10 @@
     ],
     "expected_top5_confidences": [
       0.9995561242103577,
-      0.0001299141877098009,
-      0.00010439335164846852,
-      6.148532702354714e-05,
-      5.1388491556281224e-05
+      0.00012991440598852932,
+      0.00010439314792165533,
+      6.148543616291136e-05,
+      5.138868800713681e-05
     ],
     "top1_top2_margin": 0.9994262100226479,
     "selection_reason": "easy_high_confidence",
@@ -699,7 +699,7 @@
     "true_label": "presentation",
     "expected_label_id": 12,
     "expected_label": "presentation",
-    "expected_top1_confidence": 0.3942108452320099,
+    "expected_top1_confidence": 0.39421117305755615,
     "expected_top5_label_ids": [
       12,
       13,
@@ -715,11 +715,11 @@
       "news_article"
     ],
     "expected_top5_confidences": [
-      0.3942108452320099,
-      0.3870435357093811,
-      0.08866246789693832,
-      0.05015124753117561,
-      0.03144574910402298
+      0.39421117305755615,
+      0.3870435059070587,
+      0.08866211771965027,
+      0.050151217728853226,
+      0.03144580125808716
     ],
     "top1_top2_margin": 0.007167309522628784,
     "selection_reason": "hard_correct_small_margin",
@@ -749,10 +749,10 @@
     ],
     "expected_top5_confidences": [
       0.9999957084655762,
-      1.9024345192519831e-06,
-      1.4148564559945953e-06,
-      2.957247318136069e-07,
-      2.313688582944451e-07
+      1.902430881273176e-06,
+      1.4148591844787006e-06,
+      2.957235665235203e-07,
+      2.3136843196880363e-07
     ],
     "top1_top2_margin": 0.9999938060310569,
     "selection_reason": "easy_high_confidence",
@@ -765,7 +765,7 @@
     "true_label": "scientific_report",
     "expected_label_id": 5,
     "expected_label": "scientific_report",
-    "expected_top1_confidence": 0.4215584397315979,
+    "expected_top1_confidence": 0.42155778408050537,
     "expected_top5_label_ids": [
       5,
       10,
@@ -781,11 +781,11 @@
       "specification"
     ],
     "expected_top5_confidences": [
-      0.4215584397315979,
-      0.4213399887084961,
-      0.10672718286514282,
-      0.029828771948814392,
-      0.01007819827646017
+      0.42155778408050537,
+      0.42134034633636475,
+      0.1067272201180458,
+      0.029828861355781555,
+      0.010078215971589088
     ],
     "top1_top2_margin": 0.00021845102310180664,
     "selection_reason": "hard_correct_small_margin",
@@ -815,10 +815,10 @@
     ],
     "expected_top5_confidences": [
       0.9998449087142944,
-      0.00010079039930133149,
-      4.0614791942061856e-05,
-      6.289254542934941e-06,
-      2.6718882963905344e-06
+      0.00010079105413751677,
+      4.06150211347267e-05,
+      6.28932048130082e-06,
+      2.671898300832254e-06
     ],
     "top1_top2_margin": 0.9997441183149931,
     "selection_reason": "representative_median_confidence",
@@ -848,10 +848,10 @@
     ],
     "expected_top5_confidences": [
       0.999985933303833,
-      4.391561560623813e-06,
-      4.131786226935219e-06,
-      9.52549214616738e-07,
-      9.026677503243263e-07
+      4.3915533751714975e-06,
+      4.131774403504096e-06,
+      9.525446671432292e-07,
+      9.026634870679118e-07
     ],
     "top1_top2_margin": 0.9999815417422724,
     "selection_reason": "easy_high_confidence",
@@ -864,7 +864,7 @@
     "true_label": "resume",
     "expected_label_id": 14,
     "expected_label": "resume",
-    "expected_top1_confidence": 0.2944386899471283,
+    "expected_top1_confidence": 0.2944391965866089,
     "expected_top5_label_ids": [
       14,
       5,
@@ -880,11 +880,11 @@
       "news_article"
     ],
     "expected_top5_confidences": [
-      0.2944386899471283,
-      0.2799665629863739,
-      0.25209981203079224,
-      0.08759263157844543,
-      0.029445653781294823
+      0.2944391965866089,
+      0.279965877532959,
+      0.2520996332168579,
+      0.08759275823831558,
+      0.029445623978972435
     ],
     "top1_top2_margin": 0.014472126960754395,
     "selection_reason": "hard_correct_small_margin",
@@ -897,7 +897,7 @@
     "true_label": "email",
     "expected_label_id": 2,
     "expected_label": "email",
-    "expected_top1_confidence": 0.9995984435081482,
+    "expected_top1_confidence": 0.9995985627174377,
     "expected_top5_label_ids": [
       2,
       9,
@@ -913,11 +913,11 @@
       "memo"
     ],
     "expected_top5_confidences": [
-      0.9995984435081482,
-      0.00023399482597596943,
-      8.278508903458714e-05,
-      2.6947758669848554e-05,
-      1.8767606889014132e-05
+      0.9995985627174377,
+      0.00023399530618917197,
+      8.278510358650237e-05,
+      2.694776230782736e-05,
+      1.8767645087791607e-05
     ],
     "top1_top2_margin": 0.9993644486821722,
     "selection_reason": "representative_median_confidence",
@@ -947,10 +947,10 @@
     ],
     "expected_top5_confidences": [
       0.9996631145477295,
-      9.452811355004087e-05,
+      9.452801896259189e-05,
       5.072910789749585e-05,
       4.765440462506376e-05,
-      4.625139263225719e-05
+      4.6251265302998945e-05
     ],
     "top1_top2_margin": 0.9995685864341795,
     "selection_reason": "easy_high_confidence",
@@ -963,7 +963,7 @@
     "true_label": "file_folder",
     "expected_label_id": 8,
     "expected_label": "file_folder",
-    "expected_top1_confidence": 0.22024331986904144,
+    "expected_top1_confidence": 0.2202436923980713,
     "expected_top5_label_ids": [
       8,
       10,
@@ -979,11 +979,11 @@
       "letter"
     ],
     "expected_top5_confidences": [
-      0.22024331986904144,
-      0.2175123244524002,
-      0.11988861113786697,
-      0.1079854965209961,
-      0.06268490105867386
+      0.2202436923980713,
+      0.21751326322555542,
+      0.1198883205652237,
+      0.10798554867506027,
+      0.06268458813428879
     ],
     "top1_top2_margin": 0.0027309954166412354,
     "selection_reason": "hard_correct_small_margin",
@@ -1014,9 +1014,9 @@
     "expected_top5_confidences": [
       0.9999982118606567,
       7.201094263109553e-07,
-      4.0936248524303664e-07,
+      4.093620873391046e-07,
       2.1111277703766973e-07,
-      6.586706291500377e-08
+      6.586694212273869e-08
     ],
     "top1_top2_margin": 0.9999974917512304,
     "selection_reason": "easy_high_confidence",
@@ -1029,7 +1029,7 @@
     "true_label": "invoice",
     "expected_label_id": 11,
     "expected_label": "invoice",
-    "expected_top1_confidence": 0.35566845536231995,
+    "expected_top1_confidence": 0.3556714653968811,
     "expected_top5_label_ids": [
       11,
       7,
@@ -1045,11 +1045,11 @@
       "form"
     ],
     "expected_top5_confidences": [
-      0.35566845536231995,
-      0.33912256360054016,
-      0.07481478899717331,
-      0.07057160884141922,
-      0.06918417662382126
+      0.3556714653968811,
+      0.3391191065311432,
+      0.07481511682271957,
+      0.07057151943445206,
+      0.06918437778949738
     ],
     "top1_top2_margin": 0.016545891761779785,
     "selection_reason": "hard_correct_small_margin",
@@ -1062,7 +1062,7 @@
     "true_label": "scientific_report",
     "expected_label_id": 5,
     "expected_label": "scientific_report",
-    "expected_top1_confidence": 0.4354764521121979,
+    "expected_top1_confidence": 0.43547675013542175,
     "expected_top5_label_ids": [
       5,
       12,
@@ -1078,11 +1078,11 @@
       "news_article"
     ],
     "expected_top5_confidences": [
-      0.4354764521121979,
-      0.43513116240501404,
-      0.02956353686749935,
-      0.02838163636624813,
-      0.013680888339877129
+      0.43547675013542175,
+      0.4351307153701782,
+      0.02956361323595047,
+      0.028381718322634697,
+      0.013680842705070972
     ],
     "top1_top2_margin": 0.0003452897071838379,
     "selection_reason": "extra_ambiguous_correct_from_weak_or_confused_class",
@@ -1112,10 +1112,10 @@
     ],
     "expected_top5_confidences": [
       0.9999656677246094,
-      1.4861063391435891e-05,
-      7.159477263485314e-06,
-      5.306840193952667e-06,
-      1.356816596853605e-06
+      1.4860992450849153e-05,
+      7.159463621064788e-06,
+      5.306850198394386e-06,
+      1.3568114809459075e-06
     ],
     "top1_top2_margin": 0.9999508066612179,
     "selection_reason": "easy_high_confidence",
@@ -1145,9 +1145,9 @@
     ],
     "expected_top5_confidences": [
       0.9999276399612427,
-      1.3755135114479344e-05,
-      1.3249419680505525e-05,
-      1.2383324246911798e-05,
+      1.3755056897934992e-05,
+      1.3249433322926052e-05,
+      1.2383311513985973e-05,
       7.781886779412162e-06
     ],
     "top1_top2_margin": 0.9999138848261282,
@@ -1178,10 +1178,10 @@
     ],
     "expected_top5_confidences": [
       0.9999760389328003,
-      1.4212326277629472e-05,
-      3.4038710055028787e-06,
-      2.704782673390582e-06,
-      1.0396685183877707e-06
+      1.4212313544703647e-05,
+      3.4038707781292032e-06,
+      2.704777443796047e-06,
+      1.0396636298537487e-06
     ],
     "top1_top2_margin": 0.9999618266065227,
     "selection_reason": "easy_high_confidence",
@@ -1194,7 +1194,7 @@
     "true_label": "scientific_publication",
     "expected_label_id": 6,
     "expected_label": "scientific_publication",
-    "expected_top1_confidence": 0.9929460883140564,
+    "expected_top1_confidence": 0.992946207523346,
     "expected_top5_label_ids": [
       6,
       5,
@@ -1210,11 +1210,11 @@
       "specification"
     ],
     "expected_top5_confidences": [
-      0.9929460883140564,
-      0.003923394251614809,
-      0.0013207198353484273,
-      0.0003957586013711989,
-      0.0003618985938373953
+      0.992946207523346,
+      0.003923395648598671,
+      0.001320727402344346,
+      0.0003957594162784517,
+      0.00036189882666803896
     ],
     "top1_top2_margin": 0.9890226940624416,
     "selection_reason": "representative_median_confidence",
@@ -1244,10 +1244,10 @@
     ],
     "expected_top5_confidences": [
       0.9999891519546509,
-      3.250539521104656e-06,
-      2.664326530066319e-06,
-      1.4432851003221003e-06,
-      8.614781563665019e-07
+      3.250524059694726e-06,
+      2.664311296030064e-06,
+      1.4432878288062057e-06,
+      8.614798048256489e-07
     ],
     "top1_top2_margin": 0.9999859014151298,
     "selection_reason": "easy_high_confidence",
@@ -1277,10 +1277,10 @@
     ],
     "expected_top5_confidences": [
       0.9781063795089722,
-      0.0101371044293046,
-      0.009695335291326046,
-      0.0005708441021852195,
-      0.0004441551282070577
+      0.010137094184756279,
+      0.0096953259781003,
+      0.0005708457319997251,
+      0.0004441530036274344
     ],
     "top1_top2_margin": 0.9679692750796676,
     "selection_reason": "representative_median_confidence",
@@ -1293,7 +1293,7 @@
     "true_label": "letter",
     "expected_label_id": 0,
     "expected_label": "letter",
-    "expected_top1_confidence": 0.26556330919265747,
+    "expected_top1_confidence": 0.26556307077407837,
     "expected_top5_label_ids": [
       0,
       11,
@@ -1309,11 +1309,11 @@
       "scientific_report"
     ],
     "expected_top5_confidences": [
-      0.26556330919265747,
-      0.2655065357685089,
-      0.13602526485919952,
-      0.08359049260616302,
-      0.07804746180772781
+      0.26556307077407837,
+      0.2655060291290283,
+      0.13602624833583832,
+      0.08358994126319885,
+      0.07804755866527557
     ],
     "top1_top2_margin": 5.677342414855957e-05,
     "selection_reason": "hard_correct_small_margin",
@@ -1326,7 +1326,7 @@
     "true_label": "advertisement",
     "expected_label_id": 4,
     "expected_label": "advertisement",
-    "expected_top1_confidence": 0.9999977350234985,
+    "expected_top1_confidence": 0.999997615814209,
     "expected_top5_label_ids": [
       4,
       3,
@@ -1342,11 +1342,11 @@
       "form"
     ],
     "expected_top5_confidences": [
-      0.9999977350234985,
-      5.317327236298297e-07,
-      5.087202339382202e-07,
-      3.2649879244672775e-07,
-      2.013571673842307e-07
+      0.999997615814209,
+      5.31730165675981e-07,
+      5.087181875751412e-07,
+      3.264984513862146e-07,
+      2.0135675526944397e-07
     ],
     "top1_top2_margin": 0.9999972032907749,
     "selection_reason": "easy_high_confidence",
@@ -1359,7 +1359,7 @@
     "true_label": "presentation",
     "expected_label_id": 12,
     "expected_label": "presentation",
-    "expected_top1_confidence": 0.9545069336891174,
+    "expected_top1_confidence": 0.9545071721076965,
     "expected_top5_label_ids": [
       12,
       7,
@@ -1375,11 +1375,11 @@
       "form"
     ],
     "expected_top5_confidences": [
-      0.9545069336891174,
-      0.024261755868792534,
-      0.008675671182572842,
-      0.004397361073642969,
-      0.0027132544200867414
+      0.9545071721076965,
+      0.02426164597272873,
+      0.008675682358443737,
+      0.0043973554857075214,
+      0.0027132548857480288
     ],
     "top1_top2_margin": 0.9302451778203249,
     "selection_reason": "representative_median_confidence",
@@ -1409,10 +1409,10 @@
     ],
     "expected_top5_confidences": [
       0.9673494696617126,
-      0.025338569656014442,
-      0.0017451673047617078,
-      0.0013432590058073401,
-      0.00132128712721169
+      0.02533845230937004,
+      0.0017451613675802946,
+      0.0013432608684524894,
+      0.0013212821213528514
     ],
     "top1_top2_margin": 0.9420109000056982,
     "selection_reason": "representative_median_confidence",
@@ -1425,7 +1425,7 @@
     "true_label": "scientific_report",
     "expected_label_id": 5,
     "expected_label": "scientific_report",
-    "expected_top1_confidence": 0.9162981510162354,
+    "expected_top1_confidence": 0.916297972202301,
     "expected_top5_label_ids": [
       5,
       6,
@@ -1441,11 +1441,11 @@
       "resume"
     ],
     "expected_top5_confidences": [
-      0.9162981510162354,
-      0.08084756880998611,
-      0.00216788612306118,
-      0.0001439354964531958,
-      0.00012112611148040742
+      0.916297972202301,
+      0.08084770292043686,
+      0.002167901024222374,
+      0.0001439361512893811,
+      0.00012112631520722061
     ],
     "top1_top2_margin": 0.8354505822062492,
     "selection_reason": "representative_median_confidence",
@@ -1458,7 +1458,7 @@
     "true_label": "questionnaire",
     "expected_label_id": 13,
     "expected_label": "questionnaire",
-    "expected_top1_confidence": 0.9892292618751526,
+    "expected_top1_confidence": 0.9892292022705078,
     "expected_top5_label_ids": [
       13,
       1,
@@ -1474,11 +1474,11 @@
       "handwritten"
     ],
     "expected_top5_confidences": [
-      0.9892292618751526,
-      0.0050374725833535194,
-      0.0021327785216271877,
-      0.00114992237649858,
-      0.0007876130985096097
+      0.9892292022705078,
+      0.005037495866417885,
+      0.0021327792201191187,
+      0.001149921678006649,
+      0.0007876167655922472
     ],
     "top1_top2_margin": 0.9841917892917991,
     "selection_reason": "representative_median_confidence",
@@ -1508,10 +1508,10 @@
     ],
     "expected_top5_confidences": [
       0.9965370893478394,
-      0.003038364928215742,
-      0.00040560238994657993,
-      5.234517630015034e-06,
-      3.902667685906636e-06
+      0.0030383632984012365,
+      0.00040559988701716065,
+      5.234458058112068e-06,
+      3.902641765307635e-06
     ],
     "top1_top2_margin": 0.9934987244196236,
     "selection_reason": "representative_median_confidence",
@@ -1524,7 +1524,7 @@
     "true_label": "news_article",
     "expected_label_id": 9,
     "expected_label": "news_article",
-    "expected_top1_confidence": 0.9961811304092407,
+    "expected_top1_confidence": 0.9961810111999512,
     "expected_top5_label_ids": [
       9,
       14,
@@ -1540,11 +1540,11 @@
       "budget"
     ],
     "expected_top5_confidences": [
-      0.9961811304092407,
-      0.0013766465708613396,
-      0.001254416536539793,
-      0.0006221902440302074,
-      0.00017005411791615188
+      0.9961810111999512,
+      0.0013766443589702249,
+      0.001254421193152666,
+      0.0006221896037459373,
+      0.00017005394329316914
     ],
     "top1_top2_margin": 0.9948044838383794,
     "selection_reason": "representative_median_confidence",
@@ -1574,9 +1574,9 @@
     ],
     "expected_top5_confidences": [
       0.9999991655349731,
-      2.2575041214167868e-07,
-      2.0442365666895057e-07,
-      1.6266753277704993e-07,
+      2.257504263525334e-07,
+      2.0442325876501855e-07,
+      1.626667653908953e-07,
       1.1992122495030344e-07
     ],
     "top1_top2_margin": 0.999998939784561,
@@ -1607,10 +1607,10 @@
     ],
     "expected_top5_confidences": [
       0.9999935626983643,
-      3.159062544000335e-06,
-      1.355898575639003e-06,
-      8.654477028358087e-07,
-      2.488164625447098e-07
+      3.159068683089572e-06,
+      1.3558959608417354e-06,
+      8.654444059175148e-07,
+      2.4881623517103435e-07
     ],
     "top1_top2_margin": 0.9999904036358203,
     "selection_reason": "easy_high_confidence",
@@ -1623,7 +1623,7 @@
     "true_label": "resume",
     "expected_label_id": 14,
     "expected_label": "resume",
-    "expected_top1_confidence": 1.0,
+    "expected_top1_confidence": 0.9999998807907104,
     "expected_top5_label_ids": [
       14,
       4,
@@ -1639,11 +1639,11 @@
       "questionnaire"
     ],
     "expected_top5_confidences": [
-      1.0,
-      2.223985617888502e-08,
-      1.8781816990554034e-08,
-      1.0408273354300945e-08,
-      7.593085271651034e-09
+      0.9999998807907104,
+      2.223985440252818e-08,
+      1.878192179560756e-08,
+      1.0408272466122526e-08,
+      7.59309948250575e-09
     ],
     "top1_top2_margin": 0.9999999777601438,
     "selection_reason": "easy_high_confidence",

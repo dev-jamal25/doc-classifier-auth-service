@@ -20,13 +20,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-import torch
 from PIL import Image, UnidentifiedImageError
+
+from .runtime import configure_inference_runtime
+
+configure_inference_runtime()
+
+import torch
 
 from .constants import DEFAULT_DEVICE, ID_TO_LABEL, REVIEW_THRESHOLD
 from .model import ClassifierError, get_model
 from .transforms import prepare_image
-
 # Number of top predictions returned. The top-1 is duplicated in
 # label_id/label_name/top1_confidence for convenience.
 _TOPK: int = 5

@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models import AuditLog as AuditLogModel
 from app.domain.audit_log import AuditLogEntry
 from app.domain.enums import AuditAction
 
@@ -21,8 +22,19 @@ class AuditLogRepository:
         after_value: dict | None,
         request_id: UUID,
     ) -> AuditLogEntry:
-        # TODO(impl): SQL insert and domain model mapping go here.
-        raise NotImplementedError("AuditLogRepository.create not yet implemented")
+        model = AuditLogModel(
+            action=action.value,
+            actor_user_id=actor_user_id,
+            target_type=target_type,
+            target_id=target_id,
+            before_value=before_value,
+            after_value=after_value,
+            request_id=request_id,
+        )
+        self._session.add(model)
+        await self._session.flush()
+        await self._session.refresh(model)
+        return AuditLogEntry.from_orm_row(model)
 
     async def list(self, *, limit: int = 100, offset: int = 0) -> list[AuditLogEntry]:
         # TODO(impl): SQL listing for audit entries goes here.

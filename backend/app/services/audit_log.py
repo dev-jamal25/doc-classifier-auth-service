@@ -18,7 +18,7 @@ class AuditLogService:
         target_id: UUID,
         before: dict | None,
         after: dict | None,
-        request_id: str,
+        request_id: UUID,
     ) -> AuditLogEntry:
         # TODO(impl): persist an auditable system action row.
         raise NotImplementedError("AuditLogService.write_entry not yet implemented")

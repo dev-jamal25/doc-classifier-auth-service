@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models import Prediction as PredictionModel
 from app.domain.predictions import Prediction
 
 
@@ -21,8 +22,20 @@ class PredictionRepository:
         model_sha256: str,
         request_id: UUID,
     ) -> Prediction:
-        # TODO(impl): SQL insert and domain model mapping go here.
-        raise NotImplementedError("PredictionRepository.create not yet implemented")
+        model = PredictionModel(
+            batch_id=batch_id,
+            label=label,
+            confidence=confidence,
+            top5_labels=top5_labels,
+            top5_confidences=top5_confidences,
+            overlay_blob_key=overlay_blob_key,
+            model_sha256=model_sha256,
+            request_id=request_id,
+        )
+        self._session.add(model)
+        await self._session.flush()
+        await self._session.refresh(model)
+        return Prediction.from_orm_row(model)
 
     async def get(self, prediction_id: UUID) -> Prediction | None:
         # TODO(impl): SQL select by primary key goes here.

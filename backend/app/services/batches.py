@@ -14,7 +14,7 @@ class BatchService:
         *,
         source_filename: str,
         sftp_user: str | None,
-        request_id: str,
+        request_id: UUID,
         failure_reason: str,
     ) -> Batch:
         # TODO(impl): set source="sftp-ingest" and created_by_user_id=None per D-008.

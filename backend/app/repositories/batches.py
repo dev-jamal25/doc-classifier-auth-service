@@ -1,7 +1,9 @@
 from uuid import UUID
 
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models import Batch as BatchModel
 from app.domain.batches import Batch
 from app.domain.enums import BatchSource, BatchState
 
@@ -46,8 +48,19 @@ class BatchRepository:
         new_state: BatchState,
         failure_reason: str | None = None,
     ) -> Batch:
-        # TODO(impl): SQL state update and return mapped domain model.
-        raise NotImplementedError("BatchRepository.update_state not yet implemented")
+        update_values: dict[str, str] = {"state": new_state.value}
+        if failure_reason is not None:
+            update_values["failure_reason"] = failure_reason
+
+        stmt = (
+            update(BatchModel)
+            .where(BatchModel.id == batch_id)
+            .values(**update_values)
+            .returning(BatchModel)
+        )
+        result = await self._session.execute(stmt)
+        row = result.scalar_one()
+        return Batch.from_orm_row(row)
 
     async def create_failed(
         self,
@@ -57,5 +70,17 @@ class BatchRepository:
         request_id: UUID,
         failure_reason: str,
     ) -> Batch:
-        # TODO(impl): SQL insert for failed SFTP-originated batch goes here.
-        raise NotImplementedError("BatchRepository.create_failed not yet implemented")
+        model = BatchModel(
+            source_filename=source_filename,
+            source=BatchSource.SFTP_INGEST.value,
+            sftp_user=sftp_user,
+            blob_key=None,
+            state=BatchState.FAILED.value,
+            failure_reason=failure_reason,
+            request_id=request_id,
+            created_by_user_id=None,
+        )
+        self._session.add(model)
+        await self._session.flush()
+        await self._session.refresh(model)
+        return Batch.from_orm_row(model)

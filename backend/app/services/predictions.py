@@ -23,7 +23,7 @@ class PredictionService:
         top5: list[tuple[str, float]],
         overlay_blob_key: str,
         model_sha256: str,
-        request_id: str,
+        request_id: UUID,
     ) -> Prediction:
         # TODO(impl): insert prediction and update batch state to completed.
         # TODO(cache): invalidate GET /batches/{batch_id} and GET /predictions/recent.

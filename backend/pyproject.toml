@@ -2,7 +2,15 @@
 name = "doc-classifier"
 version = "0.1.0"
 requires-python = "==3.12.*"
-dependencies = []
+dependencies = [
+  "fastapi",
+  "uvicorn[standard]",
+  "pydantic-settings",
+  "sqlalchemy[asyncio]",
+  "asyncpg",
+  "alembic",
+  "httpx",
+]
 
 [dependency-groups]
 dev = [

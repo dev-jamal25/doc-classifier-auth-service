@@ -11,6 +11,10 @@ dependencies = [
   "alembic",
   "httpx",
   "hvac",
+  "minio",
+  "rq",
+  "redis",
+  "paramiko",
 ]
 
 [dependency-groups]
@@ -32,3 +36,8 @@ select = ["E", "F", "I", "B", "UP", "ASYNC"]
 [tool.mypy]
 python_version = "3.12"
 strict = false
+
+[tool.pytest.ini_options]
+markers = [
+  "integration: integration tests that use real infrastructure containers",
+]

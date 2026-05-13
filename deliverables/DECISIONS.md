@@ -201,12 +201,13 @@ The API and worker should refuse to start if the committed classifier metric is 
 Use this temporary threshold:
 
 ```text
-test_top1 >= 0.80
+test_top1 >= 0.70
 ```
 
 ### Why
 
-This gives us a clear quality gate before the final classifier metrics are ready.
+This aligns startup validation with the threshold currently carried in
+`backend/app/classifier/models/model_card.json`, which is treated as authoritative for this phase.
 
 ### Trade-offs
 

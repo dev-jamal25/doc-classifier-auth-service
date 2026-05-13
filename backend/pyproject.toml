@@ -10,6 +10,7 @@ dependencies = [
   "asyncpg",
   "alembic",
   "httpx",
+  "hvac",
 ]
 
 [dependency-groups]

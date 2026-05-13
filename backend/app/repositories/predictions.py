@@ -1,5 +1,7 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Prediction as PredictionModel
@@ -9,6 +11,10 @@ from app.domain.predictions import Prediction
 class PredictionRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    @property
+    def session(self) -> AsyncSession:
+        return self._session
 
     async def create(
         self,
@@ -22,7 +28,7 @@ class PredictionRepository:
         model_sha256: str,
         request_id: UUID,
     ) -> Prediction:
-        model = PredictionModel(
+        row = PredictionModel(
             batch_id=batch_id,
             label=label,
             confidence=confidence,
@@ -32,18 +38,22 @@ class PredictionRepository:
             model_sha256=model_sha256,
             request_id=request_id,
         )
-        self._session.add(model)
+        self._session.add(row)
         await self._session.flush()
-        await self._session.refresh(model)
-        return Prediction.from_orm_row(model)
+        await self._session.refresh(row)
+        return Prediction.from_orm_row(row)
 
     async def get(self, prediction_id: UUID) -> Prediction | None:
-        # TODO(impl): SQL select by primary key goes here.
-        raise NotImplementedError("PredictionRepository.get not yet implemented")
+        row = await self._session.get(PredictionModel, prediction_id)
+        if row is None:
+            return None
+        return Prediction.from_orm_row(row)
 
     async def list_recent(self, *, limit: int = 50) -> list[Prediction]:
-        # TODO(impl): SQL listing ordered by created_at DESC goes here.
-        raise NotImplementedError("PredictionRepository.list_recent not yet implemented")
+        statement = select(PredictionModel).order_by(PredictionModel.created_at.desc()).limit(limit)
+        result = await self._session.execute(statement)
+        rows = result.scalars().all()
+        return [Prediction.from_orm_row(row) for row in rows]
 
     async def update_review(
         self,
@@ -52,5 +62,13 @@ class PredictionRepository:
         reviewed_label: str,
         reviewed_by_user_id: UUID,
     ) -> Prediction:
-        # TODO(impl): SQL update for reviewer label metadata goes here.
-        raise NotImplementedError("PredictionRepository.update_review not yet implemented")
+        row = await self._session.get(PredictionModel, prediction_id)
+        if row is None:
+            raise ValueError(f"Prediction `{prediction_id}` not found.")
+
+        row.reviewed_label = reviewed_label
+        row.reviewed_by_user_id = reviewed_by_user_id
+        row.reviewed_at = datetime.now(UTC)
+        await self._session.flush()
+        await self._session.refresh(row)
+        return Prediction.from_orm_row(row)

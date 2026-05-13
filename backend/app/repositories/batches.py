@@ -1,7 +1,10 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models import Batch as BatchModel
 from app.domain.batches import Batch
 from app.domain.enums import BatchSource, BatchState
 
@@ -9,6 +12,10 @@ from app.domain.enums import BatchSource, BatchState
 class BatchRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    @property
+    def session(self) -> AsyncSession:
+        return self._session
 
     async def create(
         self,
@@ -22,12 +29,27 @@ class BatchRepository:
         request_id: UUID,
         created_by_user_id: UUID | None,
     ) -> Batch:
-        # TODO(impl): SQL insert and domain model mapping go here.
-        raise NotImplementedError("BatchRepository.create not yet implemented")
+        # OWNED BY @dev-jamal25, implemented by @bmislol as ingestion dependency
+        row = BatchModel(
+            source_filename=source_filename,
+            source=source.value,
+            sftp_user=sftp_user,
+            blob_key=blob_key,
+            state=state.value,
+            failure_reason=failure_reason,
+            request_id=request_id,
+            created_by_user_id=created_by_user_id,
+        )
+        self._session.add(row)
+        await self._session.flush()
+        await self._session.refresh(row)
+        return Batch.from_orm_row(row)
 
     async def get(self, batch_id: UUID) -> Batch | None:
-        # TODO(impl): SQL select by primary key goes here.
-        raise NotImplementedError("BatchRepository.get not yet implemented")
+        row = await self._session.get(BatchModel, batch_id)
+        if row is None:
+            return None
+        return Batch.from_orm_row(row)
 
     async def list(
         self,
@@ -36,8 +58,14 @@ class BatchRepository:
         offset: int = 0,
         state: BatchState | None = None,
     ) -> list[Batch]:
-        # TODO(impl): SQL listing with optional state filter goes here.
-        raise NotImplementedError("BatchRepository.list not yet implemented")
+        statement = (
+            select(BatchModel).offset(offset).limit(limit).order_by(BatchModel.created_at.desc())
+        )
+        if state is not None:
+            statement = statement.where(BatchModel.state == state.value)
+        result = await self._session.execute(statement)
+        rows = result.scalars().all()
+        return [Batch.from_orm_row(row) for row in rows]
 
     async def update_state(
         self,
@@ -46,8 +74,20 @@ class BatchRepository:
         new_state: BatchState,
         failure_reason: str | None = None,
     ) -> Batch:
-        # TODO(impl): SQL state update and return mapped domain model.
-        raise NotImplementedError("BatchRepository.update_state not yet implemented")
+        # OWNED BY @dev-jamal25, implemented by @bmislol as ingestion dependency
+        row = await self._session.get(BatchModel, batch_id)
+        if row is None:
+            raise ValueError(f"Batch `{batch_id}` not found.")
+
+        row.state = new_state.value
+
+        # failure_reason is always written; pass the current value if you don't want to overwrite.
+
+        row.failure_reason = failure_reason
+        row.updated_at = datetime.now(UTC)
+        await self._session.flush()
+        await self._session.refresh(row)
+        return Batch.from_orm_row(row)
 
     async def create_failed(
         self,
@@ -57,5 +97,14 @@ class BatchRepository:
         request_id: UUID,
         failure_reason: str,
     ) -> Batch:
-        # TODO(impl): SQL insert for failed SFTP-originated batch goes here.
-        raise NotImplementedError("BatchRepository.create_failed not yet implemented")
+        # OWNED BY @dev-jamal25, implemented by @bmislol as ingestion dependency
+        return await self.create(
+            source_filename=source_filename,
+            source=BatchSource.SFTP_INGEST,
+            sftp_user=sftp_user,
+            blob_key=None,
+            state=BatchState.FAILED,
+            failure_reason=failure_reason,
+            request_id=request_id,
+            created_by_user_id=None,
+        )

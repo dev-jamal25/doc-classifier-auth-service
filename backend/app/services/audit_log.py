@@ -20,8 +20,15 @@ class AuditLogService:
         after: dict | None,
         request_id: UUID,
     ) -> AuditLogEntry:
-        # TODO(impl): persist an auditable system action row.
-        raise NotImplementedError("AuditLogService.write_entry not yet implemented")
+        return await self._audit_log_repository.create(
+            action=action,
+            actor_user_id=actor_user_id,
+            target_type=target_type,
+            target_id=target_id,
+            before_value=before,
+            after_value=after,
+            request_id=request_id,
+        )
 
     async def list_entries(self, *, limit: int = 100, offset: int = 0) -> list[AuditLogEntry]:
         # TODO(impl): read paginated audit trail rows.

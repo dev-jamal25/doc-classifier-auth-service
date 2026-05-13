@@ -28,7 +28,6 @@ class PredictionRepository:
         model_sha256: str,
         request_id: UUID,
     ) -> Prediction:
-        # OWNED BY @dev-jamal25, implemented by @bmislol as ingestion dependency
         row = PredictionModel(
             batch_id=batch_id,
             label=label,

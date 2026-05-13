@@ -70,4 +70,4 @@ class BatchService:
     async def change_state(self, *, batch_id: UUID, new_state: BatchState) -> Batch:
         # TODO(cache): invalidate GET /batches and GET /batches/{batch_id}.
         # TODO(audit): write batch_state_change audit entry.
-        raise NotImplementedError("BatchService.change_state not yet implemented")
+        return await self._batch_repository.update_state(batch_id=batch_id, new_state=new_state)

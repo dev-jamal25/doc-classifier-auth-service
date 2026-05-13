@@ -80,10 +80,8 @@ class BatchRepository:
             raise ValueError(f"Batch `{batch_id}` not found.")
 
         row.state = new_state.value
-
-        # failure_reason is always written; pass the current value if you don't want to overwrite.
-
-        row.failure_reason = failure_reason
+        if failure_reason is not None:
+            row.failure_reason = failure_reason
         row.updated_at = datetime.now(UTC)
         await self._session.flush()
         await self._session.refresh(row)

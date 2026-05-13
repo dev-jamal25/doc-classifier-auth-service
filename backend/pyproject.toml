@@ -10,9 +10,10 @@ dependencies = [
   "asyncpg",
   "alembic",
   "httpx",
-  "torch>=2.11.0",
-  "torchvision>=0.26.0",
-  "pillow>=12.2.0",
+  "minio>=7.2.20",
+  "redis>=7.4.0",
+  "paramiko>=5.0.0",
+  "rq>=2.8.0",
 ]
 
 [dependency-groups]
@@ -34,3 +35,13 @@ select = ["E", "F", "I", "B", "UP", "ASYNC"]
 [tool.mypy]
 python_version = "3.12"
 strict = false
+
+[tool.pytest.ini_options]
+markers = [
+  "integration: integration tests that use real infrastructure containers",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"app/classifier/model.py" = ["E402"]
+"app/classifier/predict.py" = ["E402", "I001"]
+"app/classifier/transforms.py" = ["E402"]

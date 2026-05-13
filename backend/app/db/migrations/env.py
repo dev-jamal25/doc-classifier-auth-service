@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from app.core.config import get_settings
 from app.db import models  # noqa: F401
 from app.db.base import Base
+from app.infra.vault import load_secrets
 
 config = context.config
 
@@ -17,7 +18,8 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.database_url)
+secrets = load_secrets(settings)
+config.set_main_option("sqlalchemy.url", secrets.db.database_url)
 target_metadata = Base.metadata
 
 

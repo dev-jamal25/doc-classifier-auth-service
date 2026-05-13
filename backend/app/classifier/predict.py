@@ -157,4 +157,4 @@ def predict_image_path(
         raise InvalidImageError(f"PIL could not decode {path}: {e}") from e
     except OSError as e:
         # PIL raises plain OSError for truncated files, zero-byte files, etc.
-        raise InvalidImageError(f"could not read image {path}: {e}") from e 
+        raise InvalidImageError(f"could not read image {path}: {e}") from e

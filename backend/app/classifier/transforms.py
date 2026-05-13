@@ -24,11 +24,13 @@ from .constants import IMAGE_SIZE, IMAGENET_MEAN, IMAGENET_STD
 # Built once at module import. Constructing a Compose per call would be
 # wasteful and is also a footgun if anything in the pipeline ever becomes
 # stateful (e.g. a Normalize with running statistics).
-_INFERENCE_TRANSFORM: transforms.Compose = transforms.Compose([
-    transforms.Resize(IMAGE_SIZE, antialias=True),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=list(IMAGENET_MEAN), std=list(IMAGENET_STD)),
-])
+_INFERENCE_TRANSFORM: transforms.Compose = transforms.Compose(
+    [
+        transforms.Resize(IMAGE_SIZE, antialias=True),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=list(IMAGENET_MEAN), std=list(IMAGENET_STD)),
+    ]
+)
 
 
 def prepare_image(image: Image.Image) -> torch.Tensor:

@@ -198,8 +198,7 @@ def _unwrap_checkpoint(raw: Any) -> dict[str, torch.Tensor]:
         # Otherwise assume the dict itself is the state_dict.
         return raw
     raise ModelLoadError(
-        f"checkpoint is not a dict (got {type(raw).__name__}); "
-        "cannot extract a state_dict"
+        f"checkpoint is not a dict (got {type(raw).__name__}); cannot extract a state_dict"
     )
 
 
@@ -210,7 +209,7 @@ def _strip_prefixes(state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tens
         new_key = key
         for prefix in _STATE_DICT_PREFIXES:
             if new_key.startswith(prefix):
-                new_key = new_key[len(prefix):]
+                new_key = new_key[len(prefix) :]
         cleaned[new_key] = value
     return cleaned
 

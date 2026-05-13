@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # resolve from Vault at startup via app/infra/vault.py and are accessed
 # through AppContext.secrets, never through AppContext.settings.
 
+
 class Settings(BaseSettings):
     app_env: str = "development"
     log_level: str = "INFO"

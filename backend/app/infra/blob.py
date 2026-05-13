@@ -46,9 +46,7 @@ class BlobClient:
                 response.close()
                 response.release_conn()
         except Exception as exc:
-            raise BlobError(
-                f"Failed to download object `{key}` from bucket `{bucket}`."
-            ) from exc
+            raise BlobError(f"Failed to download object `{key}` from bucket `{bucket}`.") from exc
 
     def put_object(self, bucket: str, key: str, data: bytes, content_type: str) -> None:
         try:

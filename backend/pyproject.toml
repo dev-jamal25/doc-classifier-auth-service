@@ -10,11 +10,10 @@ dependencies = [
   "asyncpg",
   "alembic",
   "httpx",
-  "hvac",
-  "minio",
-  "rq",
-  "redis",
-  "paramiko",
+  "minio>=7.2.20",
+  "redis>=7.4.0",
+  "paramiko>=5.0.0",
+  "rq>=2.8.0",
 ]
 
 [dependency-groups]
@@ -41,3 +40,8 @@ strict = false
 markers = [
   "integration: integration tests that use real infrastructure containers",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"app/classifier/model.py" = ["E402"]
+"app/classifier/predict.py" = ["E402", "I001"]
+"app/classifier/transforms.py" = ["E402"]

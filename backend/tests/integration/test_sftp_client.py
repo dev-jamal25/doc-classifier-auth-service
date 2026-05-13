@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-from datetime import UTC, datetime
 
 import paramiko
 import pytest
@@ -97,7 +96,10 @@ def test_sftp_client_list_download_move_delete() -> None:
 
         sftp.move_to_quarantine(remote_path)
         quarantined = sftp.list_new_files("/upload/quarantine")
-        assert any(item.name.startswith("scan_001.") and item.name.endswith(".tif") for item in quarantined)
+
+        assert any(
+            item.name.startswith("scan_001.") and item.name.endswith(".tif") for item in quarantined
+        )
 
         quarantined_file = next(item for item in quarantined if item.name.startswith("scan_001."))
         sftp.delete_file(quarantined_file.path)

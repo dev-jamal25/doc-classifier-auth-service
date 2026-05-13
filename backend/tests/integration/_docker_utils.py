@@ -69,9 +69,7 @@ def run_container(
 
     result = subprocess.run(args, capture_output=True, text=True, check=False)
     if result.returncode != 0:
-        raise RuntimeError(
-            f"Failed to start container `{image}`. stderr: {result.stderr.strip()}"
-        )
+        raise RuntimeError(f"Failed to start container `{image}`. stderr: {result.stderr.strip()}")
     container_id = result.stdout.strip()
 
     try:

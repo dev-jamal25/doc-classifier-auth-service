@@ -1,0 +1,8 @@
+[
+  {
+    "source_test_index": 33669,
+    "label": 6,
+    "error_type": "UnidentifiedImageError",
+    "error_message": "cannot identify image file <_io.BytesIO object at 0x7fb02f4d4f40>"
+  }
+]

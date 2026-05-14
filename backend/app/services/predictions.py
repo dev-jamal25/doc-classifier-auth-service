@@ -1,7 +1,6 @@
 from uuid import UUID
 
 from app.domain.enums import AuditAction, BatchState
-from app.domain.errors import BatchAlreadyCompletedError, BatchNotFoundError
 from app.domain.predictions import Prediction
 from app.repositories.batches import BatchRepository
 from app.repositories.predictions import PredictionRepository
@@ -22,6 +21,12 @@ class PredictionService:
         self._audit_log_service = audit_log_service
         self._cache_invalidator = cache_invalidator or NoOpServiceCacheInvalidator()
 
+    # TODO(@bmislol, Phase 5): idempotency check. If existing_batch.state ==
+    # BatchState.COMPLETED, this method is being called again for a batch that
+    # already has a prediction. Likely cause: RQ retry of a job that succeeded
+    # but failed during post-commit cache invalidation. Either short-circuit
+    # and return the existing prediction, or raise BatchAlreadyCompletedError.
+
     async def record_prediction(
         self,
         *,
@@ -41,19 +46,6 @@ class PredictionService:
         session = self._prediction_repository.session
 
         async with session.begin():
-            existing_batch = await self._batch_repository.get(batch_id)
-            if existing_batch is None:
-                raise BatchNotFoundError(batch_id)
-
-            if existing_batch.state == BatchState.COMPLETED:
-                existing_prediction = await self._prediction_repository.get_by_batch_id(batch_id)
-                if existing_prediction is not None:
-                    return existing_prediction
-
-                # TODO(decision): add a future migration with UNIQUE(predictions.batch_id)
-                # to prevent concurrent duplicate inserts. Intentionally deferred in this branch.
-                raise BatchAlreadyCompletedError(batch_id)
-
             prediction = await self._prediction_repository.create(
                 batch_id=batch_id,
                 label=label,

@@ -23,7 +23,7 @@ htmlcov/
 data/
 *.tif
 *.tiff
-!backend/app/classifier/eval/golden_images/*.tif
+!backend/app/classifier/eval/golden_images/*.tiff
 # misc
 .structureignore
 structure.md

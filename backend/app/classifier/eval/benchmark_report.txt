@@ -1,0 +1,16 @@
+=== Classifier Inference Latency Report ===
+Device          : cpu
+Torch threads   : 4
+Torch version   : 2.12.0+cpu
+Images tested   : 50 × 1 repeat(s) = 50 timed runs
+Warmup runs     : 5 (not counted)
+-------------------------------------------
+Stat    Value
+mean    111.32ms
+p50     33.36ms
+p95     303.21ms
+max     306.35ms
+-------------------------------------------
+Budget  : p95 < 1000.00ms
+Result  : PASS  (303.21ms)
+-------------------------------------------

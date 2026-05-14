@@ -70,7 +70,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install classifier dependencies
-        run: uv sync --frozen --extra worker-ml
+        run: uv sync --frozen --all-extras
 
       - name: Verify classifier artifacts exist
         run: |

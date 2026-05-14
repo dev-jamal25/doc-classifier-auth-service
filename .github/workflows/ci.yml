@@ -69,8 +69,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install backend dependencies
-        run: uv sync
+      - name: Install classifier dependencies
+        run: uv sync --frozen --extra worker-ml
 
       - name: Verify classifier artifacts exist
         run: |

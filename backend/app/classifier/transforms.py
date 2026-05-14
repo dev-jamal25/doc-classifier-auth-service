@@ -15,6 +15,10 @@ No random augmentations. No OCR. No data-dependent branches.
 
 from __future__ import annotations
 
+from .runtime import configure_inference_runtime
+
+configure_inference_runtime()
+
 import torch
 from PIL import Image
 from torchvision import transforms

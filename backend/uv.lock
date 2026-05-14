@@ -378,25 +378,38 @@ name = "doc-classifier"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "alembic" },
     { name = "asyncpg" },
-    { name = "fastapi" },
-    { name = "httpx" },
     { name = "hvac" },
+    { name = "pydantic-settings" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
+]
+
+[package.optional-dependencies]
+api = [
+    { name = "fastapi" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+ingest = [
     { name = "minio" },
     { name = "paramiko" },
-    { name = "pillow" },
-    { name = "pydantic-settings" },
     { name = "redis" },
     { name = "rq" },
-    { name = "sqlalchemy", extra = ["asyncio"] },
+]
+migrate = [
+    { name = "alembic" },
+]
+worker-ml = [
+    { name = "minio" },
+    { name = "pillow" },
+    { name = "redis" },
+    { name = "rq" },
     { name = "torch" },
     { name = "torchvision" },
-    { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "httpx" },
     { name = "mypy" },
     { name = "nbformat" },
     { name = "pre-commit" },
@@ -407,25 +420,29 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "alembic" },
+    { name = "alembic", marker = "extra == 'migrate'" },
     { name = "asyncpg" },
-    { name = "fastapi" },
-    { name = "httpx" },
+    { name = "fastapi", marker = "extra == 'api'" },
     { name = "hvac", specifier = ">=2.4.0" },
-    { name = "minio", specifier = ">=7.2.20" },
-    { name = "paramiko", specifier = ">=5.0.0" },
-    { name = "pillow", specifier = ">=12.2.0" },
+    { name = "minio", marker = "extra == 'ingest'", specifier = ">=7.2.20" },
+    { name = "minio", marker = "extra == 'worker-ml'", specifier = ">=7.2.20" },
+    { name = "paramiko", marker = "extra == 'ingest'", specifier = ">=5.0.0" },
+    { name = "pillow", marker = "extra == 'worker-ml'", specifier = ">=12.2.0" },
     { name = "pydantic-settings" },
-    { name = "redis", specifier = ">=7.4.0" },
-    { name = "rq", specifier = ">=2.8.0" },
+    { name = "redis", marker = "extra == 'ingest'", specifier = ">=7.4.0" },
+    { name = "redis", marker = "extra == 'worker-ml'", specifier = ">=7.4.0" },
+    { name = "rq", marker = "extra == 'ingest'", specifier = ">=2.8.0" },
+    { name = "rq", marker = "extra == 'worker-ml'", specifier = ">=2.8.0" },
     { name = "sqlalchemy", extras = ["asyncio"] },
-    { name = "torch", specifier = ">=2.12.0" },
-    { name = "torchvision", specifier = ">=0.27.0" },
-    { name = "uvicorn", extras = ["standard"] },
+    { name = "torch", marker = "extra == 'worker-ml'", specifier = ">=2.12.0" },
+    { name = "torchvision", marker = "extra == 'worker-ml'", specifier = ">=0.27.0" },
+    { name = "uvicorn", extras = ["standard"], marker = "extra == 'api'" },
 ]
+provides-extras = ["api", "migrate", "ingest", "worker-ml"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "httpx" },
     { name = "mypy" },
     { name = "nbformat", specifier = ">=5.10.4" },
     { name = "pre-commit" },

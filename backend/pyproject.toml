@@ -40,6 +40,7 @@ dev = [
   "pytest",
   "pytest-asyncio",
   "pre-commit",
+  "nbformat>=5.10.4",
 ]
 
 [tool.ruff]

@@ -300,8 +300,8 @@ async def test_record_prediction_returns_existing_prediction_for_completed_batch
     prediction_repo.create.assert_not_awaited()
     batch_repo.update_state.assert_not_awaited()
     audit_service.write_entry.assert_not_awaited()
-    assert cache.batch_detail_calls == []
-    assert cache.predictions_recent_calls == 0
+    assert cache.batch_detail_calls == [batch_id]
+    assert cache.predictions_recent_calls == 1
 
 
 @pytest.mark.asyncio

@@ -14,7 +14,6 @@ confidence, the top-5 list, a needs_review flag, and the model SHA-256.
 This module does not touch the database, the queue, blob storage, or
 HTTP. It is a pure inference library.
 """
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -31,6 +30,7 @@ import torch
 from .constants import DEFAULT_DEVICE, ID_TO_LABEL, REVIEW_THRESHOLD
 from .model import ClassifierError, get_model
 from .transforms import prepare_image
+
 # Number of top predictions returned. The top-1 is duplicated in
 # label_id/label_name/top1_confidence for convenience.
 _TOPK: int = 5

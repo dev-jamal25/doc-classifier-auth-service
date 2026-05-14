@@ -1,24 +1,21 @@
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 
+from app.api.routers.admin import router as admin_router
+from app.api.routers.batches import router as batches_router
 from app.api.routers.health import router as health_router
-from app.core.config import get_settings
-from app.core.logging import configure_logging
-
-
-@asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    settings = get_settings()
-    configure_logging(settings, service="api")
-    # TODO(startup-checks): enforce Vault/Casbin/classifier readiness checks from ARCH.md.
-    yield
+from app.api.routers.predictions import router as predictions_router
+from app.core.lifespan import build_fastapi_lifespan
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="doc-classifier-auth-service", lifespan=lifespan)
+    app = FastAPI(
+        title="doc-classifier-auth-service",
+        lifespan=build_fastapi_lifespan("api"),
+    )
     app.include_router(health_router)
+    app.include_router(batches_router)
+    app.include_router(predictions_router)
+    app.include_router(admin_router)
     return app
 
 

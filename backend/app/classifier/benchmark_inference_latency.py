@@ -6,7 +6,6 @@ import os
 import time
 from pathlib import Path
 
-
 IMAGE_EXTENSIONS = {".tif", ".tiff", ".png", ".jpg", ".jpeg"}
 
 DEVICE = "cpu"

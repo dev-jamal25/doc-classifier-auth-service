@@ -31,5 +31,4 @@ class AuditLogService:
         )
 
     async def list_entries(self, *, limit: int = 100, offset: int = 0) -> list[AuditLogEntry]:
-        # TODO(impl): read paginated audit trail rows.
-        raise NotImplementedError("AuditLogService.list_entries not yet implemented")
+        return await self._audit_log_repository.list(limit=limit, offset=offset)

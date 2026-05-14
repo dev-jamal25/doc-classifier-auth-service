@@ -1,11 +1,11 @@
 # RUNBOOK.md
 
 Status: Draft operational guide
-Last updated: 2026-05-12
+Last updated: 2026-05-14
 
 ## 1. Local Startup
 
-From a fresh clone:
+Primary startup path (from a fresh clone):
 
 ```bash
 cp .env.example .env
@@ -17,8 +17,21 @@ Expected behavior:
 1. Vault, Postgres, Redis, MinIO, and SFTP start.
 2. `migrate` runs Alembic migrations and exits successfully.
 3. `api` starts after startup checks pass.
-4. `worker` starts after classifier artifact checks pass.
-5. `sftp-ingest` starts polling the SFTP drop folder.
+4. `sftp-ingest` starts polling the SFTP drop folder.
+5. `worker` is excluded by default behind a Compose profile until its real entrypoint lands.
+
+Worker profile note:
+
+- Start default stack without worker:
+  - `docker compose up --build`
+- Include worker explicitly (Phase 5 profile):
+  - `docker compose --profile phase5-worker up --build`
+
+Environment note:
+
+- `.env.example` keeps Vault bootstrap, ports, and non-secret settings only.
+- App runtime secrets are still loaded from Vault (`load_secrets()`), never from `.env`.
+- Bootstrap credentials for Postgres/MinIO/SFTP rely on Compose dev-only fallbacks unless you override them locally.
 
 If the API refuses to start, check:
 

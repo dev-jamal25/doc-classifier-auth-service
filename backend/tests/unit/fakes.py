@@ -13,8 +13,15 @@ from app.repositories.predictions import PredictionRepository
 
 
 class FakeBatchRepository(BatchRepository):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        batches: list[Batch] | None = None,
+        batch_by_id: dict[UUID, Batch] | None = None,
+    ) -> None:
         self.calls: list[dict] = []
+        self._batches: list[Batch] = batches if batches is not None else []
+        self._batch_by_id: dict[UUID, Batch] = batch_by_id if batch_by_id is not None else {}
 
     async def create_failed(
         self,
@@ -78,10 +85,29 @@ class FakeBatchRepository(BatchRepository):
             updated_at=now,
         )
 
+    async def list(
+        self,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+        state: BatchState | None = None,
+    ) -> list[Batch]:
+        self.calls.append({"method": "list", "limit": limit, "offset": offset, "state": state})
+        return self._batches
+
+    async def get(self, batch_id: UUID) -> Batch | None:
+        self.calls.append({"method": "get", "batch_id": batch_id})
+        return self._batch_by_id.get(batch_id)
+
 
 class FakePredictionRepository(PredictionRepository):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        recent: list[Prediction] | None = None,
+    ) -> None:
         self.calls: list[dict] = []
+        self._recent: list[Prediction] = recent if recent is not None else []
 
     async def create(
         self,
@@ -123,10 +149,19 @@ class FakePredictionRepository(PredictionRepository):
             created_at=datetime.now(UTC),
         )
 
+    async def list_recent(self, *, limit: int = 50) -> list[Prediction]:
+        self.calls.append({"method": "list_recent", "limit": limit})
+        return self._recent
+
 
 class FakeAuditLogRepository(AuditLogRepository):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        entries: list[AuditLogEntry] | None = None,
+    ) -> None:
         self.calls: list[dict] = []
+        self._entries: list[AuditLogEntry] = entries if entries is not None else []
 
     async def create(
         self,
@@ -162,3 +197,7 @@ class FakeAuditLogRepository(AuditLogRepository):
             request_id=request_id,
             created_at=datetime.now(UTC),
         )
+
+    async def list(self, *, limit: int = 100, offset: int = 0) -> list[AuditLogEntry]:
+        self.calls.append({"method": "list", "limit": limit, "offset": offset})
+        return self._entries

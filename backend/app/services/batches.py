@@ -61,11 +61,11 @@ class BatchService:
         state: BatchState | None = None,
     ) -> list[Batch]:
         # TODO(cache): cache GET /batches with TTL 60s via fastapi-cache2.
-        raise NotImplementedError("BatchService.list_batches not yet implemented")
+        return await self._batch_repository.list(limit=limit, offset=offset, state=state)
 
     async def get_batch(self, batch_id: UUID) -> Batch | None:
         # TODO(cache): cache GET /batches/{batch_id} with TTL 60s via fastapi-cache2.
-        raise NotImplementedError("BatchService.get_batch not yet implemented")
+        return await self._batch_repository.get(batch_id)
 
     async def change_state(self, *, batch_id: UUID, new_state: BatchState) -> Batch:
         # TODO(cache): invalidate GET /batches and GET /batches/{batch_id}.

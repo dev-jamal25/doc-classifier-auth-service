@@ -159,8 +159,7 @@ def main() -> None:
 
     if p95 >= P95_BUDGET_MS:
         raise SystemExit(
-            f"Inference latency budget failed: "
-            f"p95={p95:.2f}ms >= {P95_BUDGET_MS:.2f}ms"
+            f"Inference latency budget failed: p95={p95:.2f}ms >= {P95_BUDGET_MS:.2f}ms"
         )
 
     log(f"PASS: inference p95={p95:.2f}ms is under {P95_BUDGET_MS:.2f}ms")

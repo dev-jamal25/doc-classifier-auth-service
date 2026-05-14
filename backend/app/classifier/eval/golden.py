@@ -29,9 +29,7 @@ def run_golden_replay() -> int:
         lines: list[str] = []
 
         if pred.label_name != entry["expected_label"]:
-            lines.append(
-                f"  expected_label={entry['expected_label']}  got={pred.label_name}"
-            )
+            lines.append(f"  expected_label={entry['expected_label']}  got={pred.label_name}")
 
         conf_diff = abs(pred.top1_confidence - entry["expected_top1_confidence"])
         if conf_diff > _CONF_TOLERANCE:

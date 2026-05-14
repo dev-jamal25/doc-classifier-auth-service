@@ -14,6 +14,7 @@ confidence, the top-5 list, a needs_review flag, and the model SHA-256.
 This module does not touch the database, the queue, blob storage, or
 HTTP. It is a pure inference library.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

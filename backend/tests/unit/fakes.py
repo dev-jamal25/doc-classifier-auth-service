@@ -13,8 +13,14 @@ from app.repositories.predictions import PredictionRepository
 
 
 class FakeBatchRepository(BatchRepository):
-    def __init__(self) -> None:
+    def __init__(self, *, batch: Batch | None = None, session: object | None = None) -> None:
+        self._session = session if session is not None else object()
         self.calls: list[dict] = []
+        self._batch = batch
+
+    async def get(self, batch_id: UUID) -> Batch | None:
+        self.calls.append({"method": "get", "batch_id": batch_id})
+        return self._batch
 
     async def create_failed(
         self,
@@ -80,8 +86,15 @@ class FakeBatchRepository(BatchRepository):
 
 
 class FakePredictionRepository(PredictionRepository):
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        existing_prediction: Prediction | None = None,
+        session: object | None = None,
+    ) -> None:
+        self._session = session if session is not None else object()
         self.calls: list[dict] = []
+        self._existing_prediction = existing_prediction
 
     async def create(
         self,
@@ -123,9 +136,14 @@ class FakePredictionRepository(PredictionRepository):
             created_at=datetime.now(UTC),
         )
 
+    async def get_by_batch_id(self, batch_id: UUID) -> Prediction | None:
+        self.calls.append({"method": "get_by_batch_id", "batch_id": batch_id})
+        return self._existing_prediction
+
 
 class FakeAuditLogRepository(AuditLogRepository):
-    def __init__(self) -> None:
+    def __init__(self, *, session: object | None = None) -> None:
+        self._session = session if session is not None else object()
         self.calls: list[dict] = []
 
     async def create(

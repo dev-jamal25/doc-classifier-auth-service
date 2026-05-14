@@ -148,6 +148,7 @@ def _register_shutdown_signals(stop_event: asyncio.Event) -> None:
         try:
             loop.add_signal_handler(sig, _handle_signal, sig.name)
         except NotImplementedError:
+
             def _fallback_handler(
                 _signum: int,
                 _frame: object,

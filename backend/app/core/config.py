@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # SFTP ingest
     sftp_host: str = "localhost"
     sftp_port: int = 22
-    sftp_remote_dir: str = "/incoming"
+    sftp_remote_dir: str = "/upload"
     sftp_quarantine_dir: str = "/quarantine"
     sftp_poll_interval_seconds: int = 5
     max_sftp_file_size_bytes: int = 50 * 1024 * 1024

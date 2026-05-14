@@ -28,6 +28,10 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from .runtime import configure_inference_runtime
+
+configure_inference_runtime()
+
 import torch
 from torch import nn
 from torchvision.models import convnext_tiny

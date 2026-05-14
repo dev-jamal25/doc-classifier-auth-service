@@ -32,8 +32,8 @@
   },
   "architecture": {
     "backbone": "convnext_tiny",
-    "weights_enum": "ConvNeXt_Tiny_Weights.IMAGENET1K_V1",
-    "freeze_policy": "partial_unfreeze",
+    "weights_enum": "ConvNeXt_Tiny_Weights.DEFAULT",
+    "freeze_policy": "partial_unfreeze_final_stage_and_classifier",
     "num_classes": 16
   },
   "input_contract": {
@@ -43,7 +43,9 @@
     "width": 224,
     "preprocessing": {
       "convert_to_rgb": true,
-      "resize": [
+      "resize_shorter_side": 236,
+      "center_crop": 224,
+      "final_image_size": [
         224,
         224
       ],
@@ -60,12 +62,10 @@
         ]
       }
     },
-    "important_note": "RVL-CDIP TIFFs are grayscale, but ConvNeXt expects 3-channel input. Inference must call image.convert('RGB')."
+    "important_note": "RVL-CDIP TIFFs are grayscale, but ConvNeXt expects 3-channel input. Inference must call image.convert('RGB'). Evaluation and inference use Resize(236), CenterCrop(224), ToTensor, and ImageNet normalization. The model receives a final 3x224x224 tensor."
   },
   "training_history_summary": {
     "available": true,
-    "raw_type": "<class 'list'>",
-    "num_records": 2,
     "records": [
       {
         "epoch": 1,
@@ -87,97 +87,65 @@
     "best_validation_record": {
       "metric": "val_top1",
       "value": 0.801775,
-      "record": {
-        "epoch": 2,
-        "train_loss": 0.44175373404361307,
-        "train_acc": 0.865865625,
-        "val_loss": 0.6750666429400444,
-        "val_top1": 0.801775,
-        "val_top5": 0.962825
-      }
+      "selected_epoch": 2
     }
   },
   "metrics": {
     "full_test": {
-      "loss": 0.42821707884434856,
-      "top1": 0.871996799919998,
-      "top5": 0.9820245506137654,
+      "loss": 0.6788589708128375,
+      "top1": 0.8028700717517938,
+      "top5": 0.9635240881022026,
       "num_examples_expected": 40000,
       "num_examples_evaluated": 39999,
       "num_examples_skipped": 1,
-      "skipped_images_path": "app/classifier/eval/bad_test_images_epoch_2.json",
+      "evaluated_plus_skipped": 40000,
+      "batch_size": 32,
       "per_class_accuracy": {
-        "letter": 0.8563311688311688,
-        "form": 0.7797286512370312,
-        "email": 0.9721780604133545,
-        "handwritten": 0.9561611374407583,
-        "advertisement": 0.9208747514910537,
-        "scientific_report": 0.6733386709367494,
-        "scientific_publication": 0.9210423959548814,
-        "specification": 0.889967637540453,
+        "letter": 0.7723214285714286,
+        "form": 0.7126895450917797,
+        "email": 0.8437996820349761,
+        "handwritten": 0.9407582938388626,
+        "advertisement": 0.9113320079522863,
+        "scientific_report": 0.5160128102481986,
+        "scientific_publication": 0.8580318942045897,
+        "specification": 0.8361650485436893,
         "file_folder": 0.9584487534626038,
-        "news_article": 0.8534307754770605,
-        "budget": 0.8259481037924151,
-        "invoice": 0.9051271699636657,
-        "presentation": 0.8529529931699478,
-        "questionnaire": 0.7728952772073922,
-        "resume": 0.9298383918013402,
-        "memo": 0.8760032102728732
+        "news_article": 0.8217620787657328,
+        "budget": 0.6994011976047905,
+        "invoice": 0.8558740411788454,
+        "presentation": 0.8059461631177179,
+        "questionnaire": 0.717864476386037,
+        "resume": 0.8766259361450532,
+        "memo": 0.7102728731942215
       },
       "worst_class": {
         "label": "scientific_report",
-        "accuracy": 0.6733386709367494
+        "accuracy": 0.5160128102481986
       },
-      "elapsed_seconds": 1130.1927242279053,
-      "device": "cuda"
+      "best_class": {
+        "label": "file_folder",
+        "accuracy": 0.9584487534626038
+      },
+      "device": "cuda",
+      "note": "1 bad/unreadable test image(s) were skipped by the safe decoding wrapper. Metrics are computed over the 39999 successfully evaluated examples."
     },
     "golden_set": {
       "num_examples": 50,
-      "top1": 1.0,
-      "top5": 1.0,
-      "selection_policy": "From the official RVL-CDIP test split, selected 50 correct examples. For each of the 16 classes: one easy high-confidence correct example, one representative median-confidence correct example, and one hard/ambiguous correct example based on small top1-top2 margin and/or lower confidence. The remaining 2 examples were selected from weaker or more confused classes. Wrong predictions are excluded from the CI golden set and kept separately for error analysis."
+      "purpose": "CI replay set for detecting model-loading or preprocessing drift.",
+      "note": "Golden-set expected outputs must be generated from the same checkpoint and the same preprocessing pipeline used in backend/app/classifier/transforms.py."
     }
   },
   "quality_gate": {
     "readme_min_test_top1": 0.7,
-    "startup_rule": "API and worker should refuse to boot if weights are missing, SHA-256 mismatches, or full-test top-1 is below README threshold."
+    "startup_rule": "API and worker should refuse to boot if weights are missing, SHA-256 mismatches, or full-test top-1 is below the README threshold."
   },
   "environment": {
-    "python": "3.11",
+    "python": "3.12.13",
     "torch": "2.10.0+cu128",
     "torchvision": "0.25.0+cu128",
-    "eval_device": "cuda"
+    "eval_device": "cuda",
+    "datasets_version": "3.6.0",
+    "huggingface_hub_version": "0.36.0"
   },
-  "status": "complete",
-  "golden_set_selection": {
-    "num_images": 50,
-    "source_split": "test",
-    "classes_covered": [
-      "letter",
-      "form",
-      "email",
-      "handwritten",
-      "advertisement",
-      "scientific_report",
-      "scientific_publication",
-      "specification",
-      "file_folder",
-      "news_article",
-      "budget",
-      "invoice",
-      "presentation",
-      "questionnaire",
-      "resume",
-      "memo"
-    ],
-    "wrong_predictions_included": false,
-    "policy": "From the official RVL-CDIP test split, selected 50 correct examples. For each of the 16 classes: one easy high-confidence correct example, one representative median-confidence correct example, and one hard/ambiguous correct example based on small top1-top2 margin and/or lower confidence. The remaining 2 examples were selected from weaker or more confused classes. Wrong predictions are excluded from the CI golden set and kept separately for error analysis.",
-    "selection_reason_counts": {
-      "easy_high_confidence": 16,
-      "extra_ambiguous_correct_from_weak_or_confused_class": 2,
-      "hard_correct_small_margin": 16,
-      "representative_median_confidence": 16
-    },
-    "purpose": "CI replay set for detecting model-loading or preprocessing drift."
-  }
+  "status": "corrected_from_epoch_2_full_test_evaluation"
 }

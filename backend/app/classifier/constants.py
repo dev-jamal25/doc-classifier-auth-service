@@ -51,10 +51,16 @@ ID_TO_LABEL: Final[dict[int, str]] = {i: name for i, name in enumerate(CLASS_NAM
 # ---------------------------------------------------------------------------
 # Preprocessing contract (mirrors model_card.json input_contract)
 # ---------------------------------------------------------------------------
+# Final model input size. ConvNeXt receives tensors shaped (3, 224, 224).
 IMAGE_SIZE: Final[tuple[int, int]] = (224, 224)
+
+# Deterministic inference/evaluation preprocessing:
+# resize shorter side to 236, then center-crop to 224x224.
+RESIZE_SHORTER_SIDE: Final[int] = 236
+CENTER_CROP_SIZE: Final[int] = 224
+
 IMAGENET_MEAN: Final[tuple[float, float, float]] = (0.485, 0.456, 0.406)
 IMAGENET_STD: Final[tuple[float, float, float]] = (0.229, 0.224, 0.225)
-
 
 # ---------------------------------------------------------------------------
 # Inference policy

@@ -1,0 +1,16 @@
+{
+  "device": "cpu",
+  "torch_version": "2.12.0+cpu",
+  "torch_num_threads": 4,
+  "num_images": 50,
+  "warmup_runs_not_counted": 5,
+  "repeats_per_image": 1,
+  "num_timed_runs": 50,
+  "total_benchmark_seconds": 5.57,
+  "mean_ms": 111.32,
+  "p50_ms": 33.36,
+  "p95_ms": 303.21,
+  "max_ms": 306.35,
+  "budget_ms": 1000.0,
+  "pass": true
+}

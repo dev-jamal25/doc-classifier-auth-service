@@ -20,8 +20,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-import torch
 from PIL import Image, UnidentifiedImageError
+
+from .runtime import configure_inference_runtime
+
+configure_inference_runtime()
+
+import torch
 
 from .constants import DEFAULT_DEVICE, ID_TO_LABEL, REVIEW_THRESHOLD
 from .model import ClassifierError, get_model

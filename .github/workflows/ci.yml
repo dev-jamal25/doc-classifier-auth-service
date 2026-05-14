@@ -48,11 +48,43 @@ jobs:
 
   golden-set:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      CLASSIFIER_TORCH_NUM_THREADS: "1"
+      CLASSIFIER_TORCH_INTEROP_THREADS: "1"
+      CLASSIFIER_ENABLE_MKLDNN: "1"
+
     steps:
       - uses: actions/checkout@v4
         with:
           lfs: true
-      - run: 'echo "TODO: classifier teammate fills in golden-set replay"'
+
+      - name: Pull Git LFS artifacts
+        run: git lfs pull
+        working-directory: .
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install classifier dependencies
+        run: uv sync --frozen --all-extras
+
+      - name: Verify classifier artifacts exist
+        run: |
+          test -f app/classifier/models/classifier.pt
+          test -f app/classifier/models/model_card.json
+          test -f app/classifier/eval/golden_expected.json
+          test -d app/classifier/eval/golden_images
+
+      - name: Verify classifier artifact contract
+        run: |
+          uv run python -c "from app.classifier.model import verify_artifacts; verify_artifacts(); print('classifier artifacts verified')"
+
+      - name: Run golden-set replay
+        run: uv run python -m app.classifier.eval.golden
 
   compose-smoke:
     runs-on: ubuntu-latest

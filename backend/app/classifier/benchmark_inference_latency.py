@@ -6,7 +6,7 @@ import os
 import time
 from pathlib import Path
 
-IMAGE_EXTENSIONS = {".tif", ".tiff", ".png", ".jpg", ".jpeg"}
+IMAGE_EXTENSIONS = {".tif", ".tiff"}
 
 DEVICE = "cpu"
 P95_BUDGET_MS = 1000.0
@@ -27,10 +27,42 @@ def format_ms(value: float) -> str:
     return f"{value:.2f}ms"
 
 
+def _write_report(result: dict, eval_dir: Path) -> None:
+    json_path = eval_dir / "benchmark_report.json"
+    txt_path = eval_dir / "benchmark_report.txt"
+
+    json_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+
+    pass_fail = "PASS" if result["pass"] else "FAIL"
+    summary = (
+        "=== Classifier Inference Latency Report ===\n"
+        f"Device          : {result['device']}\n"
+        f"Torch threads   : {result['torch_num_threads']}\n"
+        f"Torch version   : {result['torch_version']}\n"
+        f"Images tested   : {result['num_images']} × {result['repeats_per_image']}"
+        f" repeat(s) = {result['num_timed_runs']} timed runs\n"
+        f"Warmup runs     : {result['warmup_runs_not_counted']} (not counted)\n"
+        "-------------------------------------------\n"
+        "Stat    Value\n"
+        f"mean    {result['mean_ms']:.2f}ms\n"
+        f"p50     {result['p50_ms']:.2f}ms\n"
+        f"p95     {result['p95_ms']:.2f}ms\n"
+        f"max     {result['max_ms']:.2f}ms\n"
+        "-------------------------------------------\n"
+        f"Budget  : p95 < {result['budget_ms']:.2f}ms\n"
+        f"Result  : {pass_fail}  ({result['p95_ms']:.2f}ms)\n"
+        "-------------------------------------------\n"
+    )
+    txt_path.write_text(summary, encoding="utf-8")
+    log(f"Report written to {json_path}")
+    log(f"Report written to {txt_path}")
+
+
 def main() -> None:
     log("=== Starting classifier latency benchmark ===")
 
-    # Import heavy libraries after first log so we can see where it waits.
+    # Import torch and classifier modules after the first log so the output
+    # shows exactly when the slow load happens.
     log("Importing torch and classifier modules...")
 
     import torch
@@ -156,6 +188,7 @@ def main() -> None:
 
     log("=== Final benchmark result ===")
     print(json.dumps(result, indent=2), flush=True)
+    _write_report(result, Path(GOLDEN_IMAGES_DIR).parent)
 
     if p95 >= P95_BUDGET_MS:
         raise SystemExit(

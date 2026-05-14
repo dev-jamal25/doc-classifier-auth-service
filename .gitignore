@@ -14,6 +14,7 @@ venv/
 .ruff_cache/
 htmlcov/
 .coverage
+.uv-cache/
 # never commit big artifacts
 *.pkl
 *.pth
@@ -27,5 +28,4 @@ data/
 # misc
 .structureignore
 structure.md
-
 CLAUDE.md

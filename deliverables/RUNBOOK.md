@@ -33,11 +33,6 @@ Environment note:
 - App runtime secrets are still loaded from Vault (`load_secrets()`), never from `.env`.
 - Bootstrap credentials for Postgres/MinIO/SFTP rely on Compose dev-only fallbacks unless you override them locally.
 
-Historical fallback:
-
-- `PHASE4_MANUAL_TEST.md` is now considered a historical/manual fallback flow.
-- Prefer Docker Compose startup above for normal local runs.
-
 If the API refuses to start, check:
 
 - Vault is reachable.

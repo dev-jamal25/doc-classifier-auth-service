@@ -1,12 +1,17 @@
 from datetime import datetime
 from uuid import UUID
 
+from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID
 from sqlalchemy import DateTime, Float, ForeignKey, Text, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+
+
+class User(SQLAlchemyBaseUserTableUUID, Base):
+    __tablename__ = "users"
 
 
 class Batch(Base):

@@ -27,8 +27,9 @@ async def lifespan(service_name: str) -> AsyncIterator[AppContext]:
 
 def build_fastapi_lifespan(service_name: str):
     @asynccontextmanager
-    async def _lifespan(_: FastAPI) -> AsyncIterator[None]:
-        async with lifespan(service_name):
+    async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+        async with lifespan(service_name) as context:
+            app.state.context = context
             yield
 
     return _lifespan

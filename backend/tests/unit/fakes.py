@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID, uuid4
 
+from app.db.models import User
 from app.domain.audit_log import AuditLogEntry
 from app.domain.batches import Batch
 from app.domain.enums import AuditAction, BatchSource, BatchState
@@ -254,3 +256,92 @@ class FakeAuditLogService:
     async def list_entries(self, *, limit: int = 100, offset: int = 0) -> list[AuditLogEntry]:
         self.calls.append({"method": "list_entries", "limit": limit, "offset": offset})
         return self._entries
+
+
+class FakeUserDatabase:
+    def __init__(self, *, users: list[User] | None = None) -> None:
+        self.calls: list[dict] = []
+        self._users_by_id: dict[UUID, User] = {}
+        self._users_by_email: dict[str, User] = {}
+        for user in users or []:
+            self.add_user(user)
+
+    def add_user(self, user: User) -> None:
+        self._users_by_id[user.id] = user
+        self._users_by_email[user.email.casefold()] = user
+
+    async def get(self, id: UUID) -> User | None:
+        self.calls.append({"method": "get", "id": id})
+        return self._users_by_id.get(id)
+
+    async def get_by_email(self, email: str) -> User | None:
+        self.calls.append({"method": "get_by_email", "email": email})
+        return self._users_by_email.get(email.casefold())
+
+    async def get_by_oauth_account(self, oauth: str, account_id: str) -> User | None:
+        self.calls.append(
+            {
+                "method": "get_by_oauth_account",
+                "oauth": oauth,
+                "account_id": account_id,
+            }
+        )
+        return None
+
+    async def create(self, create_dict: dict[str, Any]) -> User:
+        self.calls.append({"method": "create", "create_dict": create_dict})
+        user = User(
+            id=create_dict.get("id", uuid4()),
+            email=create_dict["email"],
+            hashed_password=create_dict["hashed_password"],
+            is_active=create_dict.get("is_active", True),
+            is_superuser=create_dict.get("is_superuser", False),
+            is_verified=create_dict.get("is_verified", False),
+        )
+        self.add_user(user)
+        return user
+
+    async def update(self, user: User, update_dict: dict[str, Any]) -> User:
+        self.calls.append({"method": "update", "user_id": user.id, "update_dict": update_dict})
+        old_email = user.email.casefold()
+        for key, value in update_dict.items():
+            setattr(user, key, value)
+        if old_email != user.email.casefold():
+            self._users_by_email.pop(old_email, None)
+        self.add_user(user)
+        return user
+
+    async def delete(self, user: User) -> None:
+        self.calls.append({"method": "delete", "user_id": user.id})
+        self._users_by_id.pop(user.id, None)
+        self._users_by_email.pop(user.email.casefold(), None)
+
+    async def add_oauth_account(
+        self,
+        user: User,
+        create_dict: dict[str, Any],
+    ) -> User:
+        self.calls.append(
+            {
+                "method": "add_oauth_account",
+                "user_id": user.id,
+                "create_dict": create_dict,
+            }
+        )
+        return user
+
+    async def update_oauth_account(
+        self,
+        user: User,
+        oauth_account: Any,
+        update_dict: dict[str, Any],
+    ) -> User:
+        self.calls.append(
+            {
+                "method": "update_oauth_account",
+                "user_id": user.id,
+                "oauth_account": oauth_account,
+                "update_dict": update_dict,
+            }
+        )
+        return user

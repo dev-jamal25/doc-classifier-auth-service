@@ -201,3 +201,56 @@ class FakeAuditLogRepository(AuditLogRepository):
     async def list(self, *, limit: int = 100, offset: int = 0) -> list[AuditLogEntry]:
         self.calls.append({"method": "list", "limit": limit, "offset": offset})
         return self._entries
+
+
+class FakeBatchService:
+    def __init__(
+        self,
+        *,
+        batches: list[Batch] | None = None,
+        batch_by_id: dict[UUID, Batch] | None = None,
+    ) -> None:
+        self.calls: list[dict] = []
+        self._batches: list[Batch] = batches if batches is not None else []
+        self._batch_by_id: dict[UUID, Batch] = batch_by_id if batch_by_id is not None else {}
+
+    async def list_batches(
+        self,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+        state: BatchState | None = None,
+    ) -> list[Batch]:
+        self.calls.append(
+            {
+                "method": "list_batches",
+                "limit": limit,
+                "offset": offset,
+                "state": state,
+            }
+        )
+        return self._batches
+
+    async def get_batch(self, batch_id: UUID) -> Batch | None:
+        self.calls.append({"method": "get_batch", "batch_id": batch_id})
+        return self._batch_by_id.get(batch_id)
+
+
+class FakePredictionService:
+    def __init__(self, *, predictions: list[Prediction] | None = None) -> None:
+        self.calls: list[dict] = []
+        self._predictions: list[Prediction] = predictions if predictions is not None else []
+
+    async def list_recent(self, *, limit: int = 50) -> list[Prediction]:
+        self.calls.append({"method": "list_recent", "limit": limit})
+        return self._predictions
+
+
+class FakeAuditLogService:
+    def __init__(self, *, entries: list[AuditLogEntry] | None = None) -> None:
+        self.calls: list[dict] = []
+        self._entries: list[AuditLogEntry] = entries if entries is not None else []
+
+    async def list_entries(self, *, limit: int = 100, offset: int = 0) -> list[AuditLogEntry]:
+        self.calls.append({"method": "list_entries", "limit": limit, "offset": offset})
+        return self._entries

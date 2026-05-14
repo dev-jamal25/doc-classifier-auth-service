@@ -85,7 +85,7 @@ jobs:
 
       - name: Run golden-set replay
         run: uv run python -m app.classifier.eval.golden
-        
+
   compose-smoke:
     runs-on: ubuntu-latest
     steps:

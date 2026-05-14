@@ -49,6 +49,19 @@ class PredictionRepository:
             return None
         return Prediction.from_orm_row(row)
 
+    async def get_by_batch_id(self, batch_id: UUID) -> Prediction | None:
+        statement = (
+            select(PredictionModel)
+            .where(PredictionModel.batch_id == batch_id)
+            .order_by(PredictionModel.created_at.desc())
+            .limit(1)
+        )
+        result = await self._session.execute(statement)
+        row = result.scalars().first()
+        if row is None:
+            return None
+        return Prediction.from_orm_row(row)
+
     async def list_recent(self, *, limit: int = 50) -> list[Prediction]:
         statement = select(PredictionModel).order_by(PredictionModel.created_at.desc()).limit(limit)
         result = await self._session.execute(statement)

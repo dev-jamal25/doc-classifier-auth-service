@@ -8,7 +8,8 @@ must route through prepare_image. Duplicating these steps elsewhere is
 the most common source of golden-set drift.
 
 Pipeline:
-    PIL.Image -> convert to RGB -> resize 224x224 -> ToTensor -> ImageNet normalize
+    PIL.Image -> convert to RGB -> resize shorter side to 236
+    -> center crop 224x224 -> ToTensor -> ImageNet normalize
 
 No random augmentations. No OCR. No data-dependent branches.
 """
@@ -23,14 +24,20 @@ import torch
 from PIL import Image
 from torchvision import transforms
 
-from .constants import IMAGE_SIZE, IMAGENET_MEAN, IMAGENET_STD
+from .constants import (
+    CENTER_CROP_SIZE,
+    IMAGENET_MEAN,
+    IMAGENET_STD,
+    RESIZE_SHORTER_SIDE,
+)
 
 # Built once at module import. Constructing a Compose per call would be
 # wasteful and is also a footgun if anything in the pipeline ever becomes
-# stateful (e.g. a Normalize with running statistics).
+# stateful.
 _INFERENCE_TRANSFORM: transforms.Compose = transforms.Compose(
     [
-        transforms.Resize(IMAGE_SIZE, antialias=True),
+        transforms.Resize(RESIZE_SHORTER_SIDE, antialias=True),
+        transforms.CenterCrop(CENTER_CROP_SIZE),
         transforms.ToTensor(),
         transforms.Normalize(mean=list(IMAGENET_MEAN), std=list(IMAGENET_STD)),
     ]
@@ -40,10 +47,9 @@ _INFERENCE_TRANSFORM: transforms.Compose = transforms.Compose(
 def prepare_image(image: Image.Image) -> torch.Tensor:
     """Apply the inference preprocessing pipeline to a PIL image.
 
-    The RGB conversion is performed inside this function (not as a
-    transform step or in the caller) so it is structurally impossible
-    for a caller to forget it. RVL-CDIP TIFFs are grayscale, but
-    ConvNeXt expects 3-channel input.
+    The RGB conversion is performed inside this function so it is
+    structurally impossible for a caller to forget it. RVL-CDIP TIFFs
+    are grayscale, but ConvNeXt expects 3-channel input.
 
     Args:
         image: A PIL image in any mode (L, RGB, RGBA, etc.). Multi-page

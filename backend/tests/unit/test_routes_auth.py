@@ -7,19 +7,32 @@ from httpx import ASGITransport, AsyncClient
 from app.api.auth.backend import get_jwt_secrets
 from app.api.auth.manager import UserManager
 from app.api.auth.user_db import get_user_db
+from app.api.deps import get_rbac_service
 from app.api.routers.auth import router as auth_router
 from app.api.schemas.users import UserCreate
+from app.domain.rbac import Role
 from app.infra.vault import JwtSecrets
 from tests.unit.fakes import FakeUserDatabase
 
 JWT_SECRETS = JwtSecrets(secret="route-test-secret" * 3, algorithm="HS256", exp_minutes=30)
 
 
-def _auth_app(fake_user_db: FakeUserDatabase) -> FastAPI:
+class _FakeRBACService:
+    def __init__(self, *, roles: list[Role]) -> None:
+        self.roles = roles
+
+    async def get_roles_for_user(self, user_id) -> list[Role]:
+        return self.roles
+
+
+def _auth_app(fake_user_db: FakeUserDatabase, *, roles: list[Role] | None = None) -> FastAPI:
     app = FastAPI()
     app.include_router(auth_router)
     app.dependency_overrides[get_jwt_secrets] = lambda: JWT_SECRETS
     app.dependency_overrides[get_user_db] = lambda: fake_user_db
+    app.dependency_overrides[get_rbac_service] = lambda: _FakeRBACService(
+        roles=roles if roles is not None else [Role.ADMIN]
+    )
     return app
 
 
@@ -70,6 +83,31 @@ async def test_login_token_can_access_me() -> None:
     assert login_response.status_code == 200
     assert me_response.status_code == 200
     assert me_response.json()["email"] == "admin@example.com"
+    assert me_response.json()["roles"] == ["admin"]
+
+
+@pytest.mark.asyncio
+async def test_me_returns_empty_roles_when_user_has_no_casbin_roles() -> None:
+    fake_user_db = FakeUserDatabase()
+    await _seed_user(fake_user_db)
+    transport = ASGITransport(app=_auth_app(fake_user_db, roles=[]))
+
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        login_response = await client.post(
+            "/auth/login",
+            data={
+                "username": "admin@example.com",
+                "password": "TempPass123!",
+            },
+        )
+        token = login_response.json()["access_token"]
+        me_response = await client.get(
+            "/me",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert me_response.status_code == 200
+    assert me_response.json()["roles"] == []
 
 
 def test_public_register_route_is_not_mounted() -> None:

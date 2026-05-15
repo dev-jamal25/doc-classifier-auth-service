@@ -90,13 +90,54 @@ def _valid_store() -> dict[str, dict[str, Any]]:
 
 @pytest.mark.asyncio
 async def test_fastapi_lifespan_stashes_app_context(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _noop_validate_api_startup() -> None:
+        return None
+
     monkeypatch.setattr(lifespan_module, "get_settings", _settings)
     monkeypatch.setattr(vault_module, "hvac", _FakeHvac(_FakeClient(_valid_store())))
+    monkeypatch.setattr(lifespan_module, "validate_api_startup", _noop_validate_api_startup)
     app = FastAPI()
 
     async with build_fastapi_lifespan("api")(app):
         assert isinstance(app.state.context, AppContext)
         assert app.state.context.secrets.jwt.secret == "jwt-signing-secret"
+
+
+@pytest.mark.asyncio
+async def test_api_lifespan_runs_rbac_startup_guard(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = 0
+
+    async def _fake_validate_api_startup() -> None:
+        nonlocal calls
+        calls += 1
+
+    monkeypatch.setattr(lifespan_module, "get_settings", _settings)
+    monkeypatch.setattr(vault_module, "hvac", _FakeHvac(_FakeClient(_valid_store())))
+    monkeypatch.setattr(lifespan_module, "validate_api_startup", _fake_validate_api_startup)
+    app = FastAPI()
+
+    async with build_fastapi_lifespan("api")(app):
+        pass
+
+    assert calls == 1
+
+
+@pytest.mark.asyncio
+async def test_non_api_lifespan_skips_rbac_startup_guard(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = 0
+
+    async def _fake_validate_api_startup() -> None:
+        nonlocal calls
+        calls += 1
+
+    monkeypatch.setattr(lifespan_module, "get_settings", _settings)
+    monkeypatch.setattr(vault_module, "hvac", _FakeHvac(_FakeClient(_valid_store())))
+    monkeypatch.setattr(lifespan_module, "validate_api_startup", _fake_validate_api_startup)
+
+    async with lifespan_module.lifespan("bootstrap-admin-role"):
+        pass
+
+    assert calls == 0
 
 
 @pytest.mark.asyncio

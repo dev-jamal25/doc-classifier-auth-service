@@ -68,6 +68,7 @@ services:
         condition: service_healthy
     environment:
       VAULT_ADDR: http://vault:8200
+      JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret}
       VAULT_TOKEN: ${VAULT_TOKEN:-dev-only-root-token}
       POSTGRES_USER: ${POSTGRES_USER:-doc_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev-only-password}

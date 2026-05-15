@@ -14,9 +14,7 @@ from app.classifier.constants import CLASS_NAMES
 from app.classifier.model import ClassifierError, get_model, verify_artifacts
 from app.classifier.predict import InvalidImageError, predict_pil_image
 from app.core.config import get_settings
-from app.core.logging import configure_logging
-
-from app.core.lifespan import AppContext, lifespan
+from app.core.lifespan import AppContext
 from app.core.logging import configure_logging, request_id_var
 from app.domain.enums import BatchState
 from app.domain.queue import ClassificationJob

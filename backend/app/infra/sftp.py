@@ -22,7 +22,7 @@ class SftpClient:
         port: int,
         username: str,
         password: str,
-        quarantine_dir: str = "/quarantine",
+        quarantine_dir: str = "/upload/quarantine",
         timeout_seconds: int = 10,
     ) -> None:
         self._host = host
@@ -174,5 +174,6 @@ class SftpClient:
         try:
             self._client().listdir(".")
         except Exception:
+            self.close()
             return False
         return True

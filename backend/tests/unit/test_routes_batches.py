@@ -5,11 +5,17 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from app.api.deps import get_batch_service
+from app.api.auth.backend import get_jwt_secrets
+from app.api.auth.users import current_active_user
+from app.api.deps import get_batch_service, get_db_session, get_rbac_service
 from app.api.routers.batches import router as batches_router
+from app.db.models import User
 from app.domain.batches import Batch
 from app.domain.enums import BatchSource, BatchState
+from app.infra.vault import JwtSecrets
 from tests.unit.fakes import FakeBatchService
+
+JWT_SECRETS = JwtSecrets(secret="route-test-secret" * 3, algorithm="HS256", exp_minutes=30)
 
 
 def _sample_batch(*, state: BatchState = BatchState.PENDING) -> Batch:
@@ -29,11 +35,76 @@ def _sample_batch(*, state: BatchState = BatchState.PENDING) -> Batch:
     )
 
 
-def _batches_app(fake_service: FakeBatchService) -> FastAPI:
+def _sample_user() -> User:
+    return User(
+        id=uuid4(),
+        email="reviewer@example.com",
+        hashed_password="hashed",
+        is_active=True,
+        is_superuser=False,
+        is_verified=False,
+    )
+
+
+class _FakeRBACService:
+    def __init__(self, *, allowed: bool = True) -> None:
+        self.allowed = allowed
+        self.calls: list[dict] = []
+
+    async def has_permission(self, user_id, obj, act) -> bool:
+        self.calls.append({"user_id": user_id, "obj": obj, "act": act})
+        return self.allowed
+
+
+async def _dummy_db_session():
+    yield object()
+
+
+def _batches_app(
+    fake_service: FakeBatchService,
+    *,
+    allow: bool = True,
+    authenticate: bool = True,
+    rbac_service: _FakeRBACService | None = None,
+) -> FastAPI:
     app = FastAPI()
     app.include_router(batches_router)
     app.dependency_overrides[get_batch_service] = lambda: fake_service
+    app.dependency_overrides[get_rbac_service] = lambda: (
+        rbac_service or _FakeRBACService(allowed=allow)
+    )
+    app.dependency_overrides[get_db_session] = _dummy_db_session
+    app.dependency_overrides[get_jwt_secrets] = lambda: JWT_SECRETS
+    if authenticate:
+        app.dependency_overrides[current_active_user] = _sample_user
     return app
+
+
+@pytest.mark.asyncio
+async def test_list_batches_without_token_returns_401() -> None:
+    fake = FakeBatchService()
+    transport = ASGITransport(app=_batches_app(fake, authenticate=False))
+
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.get("/batches")
+
+    assert response.status_code == 401
+    assert fake.calls == []
+
+
+@pytest.mark.asyncio
+async def test_list_batches_forbidden_without_permission() -> None:
+    fake = FakeBatchService()
+    rbac = _FakeRBACService(allowed=False)
+    transport = ASGITransport(app=_batches_app(fake, rbac_service=rbac))
+
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.get("/batches")
+
+    assert response.status_code == 403
+    assert fake.calls == []
+    assert rbac.calls[0]["obj"] == "batches"
+    assert rbac.calls[0]["act"] == "read"
 
 
 @pytest.mark.asyncio

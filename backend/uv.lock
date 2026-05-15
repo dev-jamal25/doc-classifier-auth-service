@@ -167,6 +167,28 @@ wheels = [
 ]
 
 [[package]]
+name = "bracex"
+version = "2.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/63/9a/fec38644694abfaaeca2798b58e276a8e61de49e2e37494ace423395febc/bracex-2.6.tar.gz", hash = "sha256:98f1347cd77e22ee8d967a30ad4e310b233f7754dbf31ff3fceb76145ba47dc7", size = 26642, upload-time = "2025-06-22T19:12:31.254Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9d/2a/9186535ce58db529927f6cf5990a849aa9e052eea3e2cfefe20b9e1802da/bracex-2.6-py3-none-any.whl", hash = "sha256:0b0049264e7340b3ec782b5cb99beb325f36c3782a32e36e876452fd49a09952", size = 11508, upload-time = "2025-06-22T19:12:29.781Z" },
+]
+
+[[package]]
+name = "casbin-async-sqlalchemy-adapter"
+version = "1.17.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pycasbin" },
+    { name = "sqlalchemy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c0/44/da5a65bd8f59270712dc4d09734c476e38d46a7001d432bce28649fc34d9/casbin_async_sqlalchemy_adapter-1.17.0.tar.gz", hash = "sha256:e42945443f66cf445bc0e09dda568fe28f9e97a60903cb282ae0fe77ba908bdb", size = 19721, upload-time = "2025-12-10T15:17:47.319Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/73/aa/c309d5c42c870450272e230abf83bf46e014751041ef1fabe619c710089d/casbin_async_sqlalchemy_adapter-1.17.0-py3-none-any.whl", hash = "sha256:bc7d408fa19458d792d7de6c9809d19bbb3ff26d6a33633adf314ff4f3520cff", size = 13270, upload-time = "2025-12-10T15:17:46.069Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.4.22"
 source = { registry = "https://pypi.org/simple" }
@@ -388,8 +410,10 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "asyncpg" },
+    { name = "casbin-async-sqlalchemy-adapter" },
     { name = "fastapi-users", extra = ["sqlalchemy"] },
     { name = "hvac" },
+    { name = "pycasbin" },
     { name = "pydantic-settings" },
     { name = "sqlalchemy", extra = ["asyncio"] },
 ]
@@ -432,6 +456,7 @@ dev = [
 requires-dist = [
     { name = "alembic", marker = "extra == 'migrate'" },
     { name = "asyncpg" },
+    { name = "casbin-async-sqlalchemy-adapter", specifier = ">=1.17.0" },
     { name = "fastapi", marker = "extra == 'api'" },
     { name = "fastapi-users", extras = ["sqlalchemy"], specifier = ">=15.0.5" },
     { name = "hvac", specifier = ">=2.4.0" },
@@ -439,6 +464,7 @@ requires-dist = [
     { name = "minio", marker = "extra == 'worker-ml'", specifier = ">=7.2.20" },
     { name = "paramiko", marker = "extra == 'ingest'", specifier = ">=5.0.0" },
     { name = "pillow", marker = "extra == 'worker-ml'", specifier = ">=12.2.0" },
+    { name = "pycasbin", specifier = ">=2.8.0" },
     { name = "pydantic-settings" },
     { name = "redis", marker = "extra == 'ingest'", specifier = ">=7.4.0" },
     { name = "redis", marker = "extra == 'worker-ml'", specifier = ">=7.4.0" },
@@ -1149,6 +1175,19 @@ bcrypt = [
 ]
 
 [[package]]
+name = "pycasbin"
+version = "2.8.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "simpleeval" },
+    { name = "wcmatch" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8e/01/bc46b48e0e4576422faea00d8cdeaf7d23e6c65891890175c831ce7c5c6d/pycasbin-2.8.0.tar.gz", hash = "sha256:2615c8940d58caf03c9206246d9499209fd520448c682d2f2ca101c41d9b0aee", size = 426693, upload-time = "2026-02-02T03:34:14.301Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e1/e3/0f15da0fb5864a37637820e4bde463a52ba0c052a8edab06aad46b9e578b/pycasbin-2.8.0-py3-none-any.whl", hash = "sha256:1a9e370de553c677c4dff75a5d6f3b0eb354b73b20d7df77ff4ee61a71267a3a", size = 476153, upload-time = "2026-02-02T03:34:12.555Z" },
+]
+
+[[package]]
 name = "pycparser"
 version = "3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1481,6 +1520,15 @@ wheels = [
 ]
 
 [[package]]
+name = "simpleeval"
+version = "1.0.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b4/9d/e7c9309940794dd3073cba2e5101df5874d84243595ce63b1e1c8f9b9c76/simpleeval-1.0.7.tar.gz", hash = "sha256:1e10e5f9fec597814444e20c0892ed15162fa214c8a88f434b5b077cf2fef85b", size = 30250, upload-time = "2026-03-16T10:53:03.464Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0f/2f/f32aa85591882378bb43caa09363f3ed97df399369a5144c7f19f2275bc0/simpleeval-1.0.7-py3-none-any.whl", hash = "sha256:97ac271bfd8f2af9e7b9a36ceea67617f26fa873f9d5ae1922f64d4c1442534b", size = 18792, upload-time = "2026-03-16T10:53:02.103Z" },
+]
+
+[[package]]
 name = "six"
 version = "1.17.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1706,6 +1754,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/0a/bf/95895e78dd75efe9a7f31733607f384b42eb5feb54bd2eb6ed57cc2e94f4/watchfiles-1.1.1-cp312-cp312-win32.whl", hash = "sha256:859e43a1951717cc8de7f4c77674a6d389b106361585951d9e69572823f311d9", size = 272042, upload-time = "2025-10-14T15:04:59.046Z" },
     { url = "https://files.pythonhosted.org/packages/87/0a/90eb755f568de2688cb220171c4191df932232c20946966c27a59c400850/watchfiles-1.1.1-cp312-cp312-win_amd64.whl", hash = "sha256:91d4c9a823a8c987cce8fa2690923b069966dabb196dd8d137ea2cede885fde9", size = 288410, upload-time = "2025-10-14T15:05:00.081Z" },
     { url = "https://files.pythonhosted.org/packages/36/76/f322701530586922fbd6723c4f91ace21364924822a8772c549483abed13/watchfiles-1.1.1-cp312-cp312-win_arm64.whl", hash = "sha256:a625815d4a2bdca61953dbba5a39d60164451ef34c88d751f6c368c3ea73d404", size = 278209, upload-time = "2025-10-14T15:05:01.168Z" },
+]
+
+[[package]]
+name = "wcmatch"
+version = "10.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "bracex" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/79/3e/c0bdc27cf06f4e47680bd5803a07cb3dfd17de84cde92dd217dcb9e05253/wcmatch-10.1.tar.gz", hash = "sha256:f11f94208c8c8484a16f4f48638a85d771d9513f4ab3f37595978801cb9465af", size = 117421, upload-time = "2025-06-22T19:14:02.49Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/eb/d8/0d1d2e9d3fabcf5d6840362adcf05f8cf3cd06a73358140c3a97189238ae/wcmatch-10.1-py3-none-any.whl", hash = "sha256:5848ace7dbb0476e5e55ab63c6bbd529745089343427caa5537f230cc01beb8a", size = 39854, upload-time = "2025-06-22T19:14:00.978Z" },
 ]
 
 [[package]]

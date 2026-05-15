@@ -4,7 +4,7 @@ set -eu
 echo "[vault-init] Seeding Vault KV paths at ${VAULT_ADDR}..."
 
 vault kv put secret/doc-classifier/jwt \
-  secret="dev-jwt-secret-do-not-use-in-prod" \
+  secret="${JWT_SECRET}" \
   algorithm="HS256" \
   exp_minutes=60
 

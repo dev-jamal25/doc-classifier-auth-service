@@ -5,9 +5,13 @@ RUN pip install --no-cache-dir uv
 WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --extra worker-ml --no-install-project
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --extra worker-ml --no-install-project
 
 COPY . .
-RUN uv sync --frozen --no-dev --extra worker-ml
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --extra worker-ml
 
 CMD ["uv", "run", "python", "-m", "app.entrypoints.worker"]

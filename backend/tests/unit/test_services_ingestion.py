@@ -51,8 +51,24 @@ class _FakeTxn:
 
 
 class _FakeSession:
+    def __init__(self, *, in_transaction: bool = False) -> None:
+        self._in_transaction = in_transaction
+        self.commits = 0
+        self.rollbacks = 0
+
     def begin(self) -> _FakeTxn:
         return _FakeTxn()
+
+    def in_transaction(self) -> bool:
+        return self._in_transaction
+
+    async def commit(self) -> None:
+        self.commits += 1
+        self._in_transaction = False
+
+    async def rollback(self) -> None:
+        self.rollbacks += 1
+        self._in_transaction = False
 
 
 def _sample_batch(*, state: BatchState = BatchState.PENDING, batch_id: UUID | None = None) -> Batch:
@@ -501,6 +517,52 @@ async def test_relabel_prediction_updates_review_audits_and_invalidates() -> Non
         after={"reviewed_label": "invoice"},
         request_id=request_id,
     )
+    assert cache.batch_detail_calls == [batch_id]
+    assert cache.predictions_recent_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_relabel_prediction_commits_existing_session_transaction() -> None:
+    session = _FakeSession(in_transaction=True)
+    prediction_id = uuid4()
+    batch_id = uuid4()
+    reviewer_id = uuid4()
+    request_id = uuid4()
+    existing_prediction = _sample_reviewable_prediction(
+        prediction_id=prediction_id,
+        batch_id=batch_id,
+    )
+    updated_prediction = existing_prediction.model_copy(
+        update={
+            "reviewed_label": "invoice",
+            "reviewed_by_user_id": reviewer_id,
+            "reviewed_at": datetime.now(UTC),
+        }
+    )
+    prediction_repo = SimpleNamespace(
+        session=session,
+        get=AsyncMock(return_value=existing_prediction),
+        update_review=AsyncMock(return_value=updated_prediction),
+    )
+    audit_service = SimpleNamespace(write_entry=AsyncMock())
+    cache = _SpyInvalidator()
+    service = PredictionService(
+        prediction_repo,
+        SimpleNamespace(session=session),
+        audit_service,
+        cache,
+    )
+
+    result = await service.relabel_prediction(
+        prediction_id=prediction_id,
+        reviewed_label="invoice",
+        reviewed_by_user_id=reviewer_id,
+        request_id=request_id,
+    )
+
+    assert result.reviewed_label == "invoice"
+    assert session.commits == 1
+    assert session.rollbacks == 0
     assert cache.batch_detail_calls == [batch_id]
     assert cache.predictions_recent_calls == 1
 

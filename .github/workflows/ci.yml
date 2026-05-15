@@ -88,9 +88,79 @@ jobs:
 
   compose-smoke:
     runs-on: ubuntu-latest
+    needs: [lint, type-check, test, golden-set]
     steps:
       - uses: actions/checkout@v4
-      - run: 'echo "TODO: bring up compose stack, SCP a TIFF, assert prediction lands"'
+        with:
+          lfs: true
+
+      - name: Pull Git LFS artifacts
+        run: git lfs pull
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+
+      - name: Boot the stack
+        run: |
+          cp .env.example .env
+          docker compose up -d --build
+
+      - name: Wait for API healthcheck
+        run: |
+          for i in {1..60}; do
+            if curl -sf http://localhost:8000/healthz > /dev/null; then
+              echo "api ready"
+              docker compose ps
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "api did not come up"
+          docker compose ps
+          exit 1
+
+      - name: Wait for worker and SFTP ingest startup
+        run: |
+          for pair in "worker worker_started" "sftp-ingest sftp_ingest_started"; do
+            set -- $pair
+            service="$1"
+            event="$2"
+            for i in {1..60}; do
+              if docker compose logs --no-color "$service" | grep -q "$event"; then
+                echo "$service ready: saw $event"
+                break
+              fi
+              if [ "$i" -eq 60 ]; then
+                echo "$service did not emit $event"
+                docker compose logs --no-color --tail=300 "$service" || true
+                exit 1
+              fi
+              sleep 2
+            done
+          done
+
+      - name: Run smoke tests
+        working-directory: backend
+        env:
+          RUN_COMPOSE_SMOKE: "1"
+        run: uv run pytest tests/smoke -v -s
+
+      - name: Dump all container logs on failure
+        if: failure()
+        run: |
+          for svc in api worker sftp-ingest migrate vault-init minio-init db redis minio sftp vault; do
+            echo "===== $svc ====="
+            docker compose logs --no-color --tail=300 "$svc" || true
+          done
+
+      - name: Tear down the stack
+        if: always()
+        run: docker compose down -v
 
   frontend-lint:
     runs-on: ubuntu-latest

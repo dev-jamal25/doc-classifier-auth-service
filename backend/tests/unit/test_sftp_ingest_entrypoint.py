@@ -10,6 +10,7 @@ from app.domain.queue import ClassificationJob
 from app.domain.sftp import FileInfo
 from app.entrypoints.sftp_ingest import (
     InMemoryDedupStore,
+    _wait_for_runtime_dependencies,
     build_dedup_key,
     has_tiff_magic_bytes,
     process_sftp_file,
@@ -70,6 +71,31 @@ class _FakeQueueClient:
             raise QueueError("queue down")
         self.jobs.append(job)
         return "rq-job-1"
+
+
+class _FakeHealthClient:
+    def __init__(self, results: list[bool]) -> None:
+        self._results = results
+        self.calls = 0
+
+    def health_check(self) -> bool:
+        self.calls += 1
+        if self._results:
+            return self._results.pop(0)
+        return False
+
+
+class _FakeBlobHealthClient(_FakeHealthClient):
+    def __init__(self, results: list[bool], *, ensure_failures: int = 0) -> None:
+        super().__init__(results)
+        self.ensure_failures = ensure_failures
+        self.ensure_calls = 0
+
+    def ensure_bucket(self, bucket: str) -> None:
+        assert bucket == "documents-raw"
+        self.ensure_calls += 1
+        if self.ensure_calls <= self.ensure_failures:
+            raise RuntimeError("bucket not ready")
 
 
 def _settings_stub() -> SimpleNamespace:
@@ -297,3 +323,43 @@ def test_has_tiff_magic_bytes_recognizes_classic_and_bigtiff_headers() -> None:
     assert has_tiff_magic_bytes(b"II+\x00payload") is True
     assert has_tiff_magic_bytes(b"MM\x00+payload") is True
     assert has_tiff_magic_bytes(b"NOTTIFF") is False
+
+
+@pytest.mark.asyncio
+async def test_wait_for_runtime_dependencies_retries_transient_sftp_startup_failure() -> None:
+    sftp = _FakeHealthClient([False, True])
+    blob = _FakeBlobHealthClient([True])
+    queue = _FakeHealthClient([True])
+
+    await _wait_for_runtime_dependencies(
+        sftp_client=sftp,
+        blob_client=blob,
+        queue_client=queue,
+        settings=_settings_stub(),
+        retry_seconds=0,
+        timeout_seconds=1,
+    )
+
+    assert sftp.calls == 2
+    assert blob.calls == 1
+    assert blob.ensure_calls == 1
+    assert queue.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_wait_for_runtime_dependencies_raises_after_retry_budget_exhausted() -> None:
+    sftp = _FakeHealthClient([False])
+    blob = _FakeBlobHealthClient([True])
+    queue = _FakeHealthClient([True])
+
+    with pytest.raises(RuntimeError, match="Runtime dependency checks failed at startup"):
+        await _wait_for_runtime_dependencies(
+            sftp_client=sftp,
+            blob_client=blob,
+            queue_client=queue,
+            settings=_settings_stub(),
+            retry_seconds=0.001,
+            timeout_seconds=0.001,
+        )
+
+    assert sftp.calls >= 1

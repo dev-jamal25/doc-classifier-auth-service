@@ -4,8 +4,6 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
-from fastapi import FastAPI
-
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
 from app.infra.vault import VaultSecrets, load_secrets
@@ -36,6 +34,8 @@ async def lifespan(service_name: str) -> AsyncIterator[AppContext]:
 
 
 def build_fastapi_lifespan(service_name: str):
+    from fastapi import FastAPI
+
     @asynccontextmanager
     async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
         async with lifespan(service_name) as context:

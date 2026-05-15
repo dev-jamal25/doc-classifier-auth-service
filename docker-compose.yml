@@ -69,6 +69,7 @@ services:
     environment:
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-do-not-use-in-prod}
       VAULT_ADDR: http://vault:8200
+      JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret}
       VAULT_TOKEN: ${VAULT_TOKEN:-dev-only-root-token}
       POSTGRES_USER: ${POSTGRES_USER:-doc_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev-only-password}
@@ -141,8 +142,6 @@ services:
       - "${API_PORT:-8000}:8000"
 
   worker:
-    profiles:
-      - phase5-worker
     build:
       context: ./backend
       dockerfile: docker/worker.Dockerfile

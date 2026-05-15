@@ -19,6 +19,7 @@ from app.core.logging import configure_logging, request_id_var
 from app.domain.enums import BatchState
 from app.domain.queue import ClassificationJob
 from app.infra.blob import BlobClient, BlobError
+from app.infra.cache import RedisServiceCacheInvalidator
 from app.infra.vault import load_secrets
 from app.repositories.audit_log import AuditLogRepository
 from app.repositories.batches import BatchRepository
@@ -135,22 +136,28 @@ async def write_prediction_record(
     model_sha256: str,
     request_id: UUID,
 ) -> None:
+    context = _resolve_worker_context()
+    cache_invalidator = RedisServiceCacheInvalidator(context.secrets.redis.url)
     session_factory = _load_async_session_factory()
-    async with session_factory() as session:
-        prediction_service = PredictionService(
-            PredictionRepository(session),
-            BatchRepository(session),
-            AuditLogService(AuditLogRepository(session)),
-        )
-        await prediction_service.record_prediction(
-            batch_id=batch_id,
-            label=label,
-            confidence=confidence,
-            top5=top5,
-            overlay_blob_key=overlay_blob_key,
-            model_sha256=model_sha256,
-            request_id=request_id,
-        )
+    try:
+        async with session_factory() as session:
+            prediction_service = PredictionService(
+                PredictionRepository(session),
+                BatchRepository(session),
+                AuditLogService(AuditLogRepository(session)),
+                cache_invalidator,
+            )
+            await prediction_service.record_prediction(
+                batch_id=batch_id,
+                label=label,
+                confidence=confidence,
+                top5=top5,
+                overlay_blob_key=overlay_blob_key,
+                model_sha256=model_sha256,
+                request_id=request_id,
+            )
+    finally:
+        await cache_invalidator.close()
 
 
 async def mark_batch_failed(
@@ -159,14 +166,20 @@ async def mark_batch_failed(
     request_id: UUID,
     failure_reason: str,
 ) -> None:
+    context = _resolve_worker_context()
+    cache_invalidator = RedisServiceCacheInvalidator(context.secrets.redis.url)
     session_factory = _load_async_session_factory()
-    async with session_factory() as session:
-        batch_service = BatchService(BatchRepository(session))
-        await batch_service.change_state(
-            batch_id=batch_id,
-            new_state=BatchState.FAILED,
-            failure_reason=failure_reason,
-        )
+    try:
+        async with session_factory() as session:
+            batch_service = BatchService(BatchRepository(session), cache_invalidator)
+            async with session.begin():
+                await batch_service.change_state(
+                    batch_id=batch_id,
+                    new_state=BatchState.FAILED,
+                    failure_reason=failure_reason,
+                )
+    finally:
+        await cache_invalidator.close()
 
 
 async def process_classification_job(

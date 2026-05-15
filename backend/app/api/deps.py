@@ -13,6 +13,7 @@ from app.repositories.predictions import PredictionRepository
 from app.repositories.users import UserRepository
 from app.services.audit_log import AuditLogService
 from app.services.batches import BatchService
+from app.services.cache import NoOpServiceCacheInvalidator, ServiceCacheInvalidator
 from app.services.predictions import PredictionService
 from app.services.rbac import RBACService
 
@@ -30,14 +31,26 @@ async def get_db_session() -> AsyncIterator[AsyncSession]:
 db_session_dependency = Depends(get_db_session)
 
 
+def get_cache_invalidator(request: Request) -> ServiceCacheInvalidator:
+    invalidator = getattr(getattr(request.app, "state", None), "cache_invalidator", None)
+    if invalidator is None:
+        return NoOpServiceCacheInvalidator()
+    return invalidator
+
+
+cache_invalidator_dependency = Depends(get_cache_invalidator)
+
+
 def get_batch_service(
     session: AsyncSession = db_session_dependency,
+    cache_invalidator: ServiceCacheInvalidator = cache_invalidator_dependency,
 ) -> BatchService:
-    return BatchService(BatchRepository(session))
+    return BatchService(BatchRepository(session), cache_invalidator)
 
 
 def get_prediction_service(
     session: AsyncSession = db_session_dependency,
+    cache_invalidator: ServiceCacheInvalidator = cache_invalidator_dependency,
 ) -> PredictionService:
     # PredictionService.__init__ requires audit_log_service for its write path.
     # list_recent does not use it, but the constructor requires it.
@@ -46,6 +59,7 @@ def get_prediction_service(
         PredictionRepository(session),
         BatchRepository(session),
         audit_log_service,
+        cache_invalidator,
     )
 
 
@@ -57,10 +71,11 @@ def get_audit_log_service(
 
 async def get_rbac_service(
     session: AsyncSession = db_session_dependency,
+    cache_invalidator: ServiceCacheInvalidator = cache_invalidator_dependency,
 ) -> RBACService:
     enforcer = await build_enforcer(session)
     audit_log_service = AuditLogService(AuditLogRepository(session))
-    return RBACService(enforcer, UserRepository(session), audit_log_service)
+    return RBACService(enforcer, UserRepository(session), audit_log_service, cache_invalidator)
 
 
 async def get_request_id(request: Request) -> UUID:

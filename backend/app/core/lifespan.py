@@ -28,9 +28,20 @@ async def lifespan(service_name: str) -> AsyncIterator[AppContext]:
     settings = get_settings()
     configure_logging(settings, service=service_name)
     secrets = load_secrets(settings)
+    api_cache_client = None
     if service_name == "api":
         await validate_api_startup()
-    yield AppContext(settings=settings, secrets=secrets)
+        from app.infra.cache import initialize_api_cache
+
+        api_cache_client = await initialize_api_cache(secrets.redis.url)
+    try:
+        yield AppContext(settings=settings, secrets=secrets)
+    finally:
+        if api_cache_client is not None:
+            await api_cache_client.aclose()
+            from fastapi_cache import FastAPICache
+
+            FastAPICache.reset()
 
 
 def build_fastapi_lifespan(service_name: str):
@@ -40,6 +51,16 @@ def build_fastapi_lifespan(service_name: str):
     async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
         async with lifespan(service_name) as context:
             app.state.context = context
-            yield
+            cache_invalidator = None
+            if service_name == "api":
+                from app.infra.cache import RedisServiceCacheInvalidator
+
+                cache_invalidator = RedisServiceCacheInvalidator(context.secrets.redis.url)
+                app.state.cache_invalidator = cache_invalidator
+            try:
+                yield
+            finally:
+                if cache_invalidator is not None:
+                    await cache_invalidator.close()
 
     return _lifespan

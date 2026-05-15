@@ -81,6 +81,7 @@ class PredictionService:
                 request_id=request_id,
             )
 
+        await self._cache_invalidator.invalidate_batches_list()
         await self._cache_invalidator.invalidate_batch_detail(batch_id)
         await self._cache_invalidator.invalidate_predictions_recent()
         return prediction
@@ -98,5 +99,4 @@ class PredictionService:
         raise NotImplementedError("PredictionService.relabel_prediction not yet implemented")
 
     async def list_recent(self, *, limit: int = 50) -> list[Prediction]:
-        # TODO(cache): cache GET /predictions/recent with TTL 60s via fastapi-cache2.
         return await self._prediction_repository.list_recent(limit=limit)

@@ -15,6 +15,9 @@ dependencies = [
 [project.optional-dependencies]
 api = [
   "fastapi",
+  "fastapi-cache2>=0.2.2",
+  "jinja2>=3.1.6",
+  "redis>=7.4.0",
   "uvicorn[standard]",
 ]
 migrate = [
@@ -37,11 +40,14 @@ worker-ml = [
 
 [dependency-groups]
 dev = [
+  "fastapi-cache2>=0.2.2",
   "httpx",
+  "jinja2>=3.1.6",
   "ruff",
   "mypy",
   "pytest",
   "pytest-asyncio",
+  "redis>=7.4.0",
   "pre-commit",
   "nbformat>=5.10.4",
 ]

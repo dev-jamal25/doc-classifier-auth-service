@@ -239,13 +239,57 @@ class FakeBatchService:
 
 
 class FakePredictionService:
-    def __init__(self, *, predictions: list[Prediction] | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        predictions: list[Prediction] | None = None,
+        relabel_result: Prediction | None = None,
+        relabel_error: Exception | None = None,
+    ) -> None:
         self.calls: list[dict] = []
         self._predictions: list[Prediction] = predictions if predictions is not None else []
+        self._relabel_result = relabel_result
+        self._relabel_error = relabel_error
 
     async def list_recent(self, *, limit: int = 50) -> list[Prediction]:
         self.calls.append({"method": "list_recent", "limit": limit})
         return self._predictions
+
+    async def relabel_prediction(
+        self,
+        *,
+        prediction_id: UUID,
+        reviewed_label: str,
+        reviewed_by_user_id: UUID,
+        request_id: UUID,
+    ) -> Prediction:
+        self.calls.append(
+            {
+                "method": "relabel_prediction",
+                "prediction_id": prediction_id,
+                "reviewed_label": reviewed_label,
+                "reviewed_by_user_id": reviewed_by_user_id,
+                "request_id": request_id,
+            }
+        )
+        if self._relabel_error is not None:
+            raise self._relabel_error
+        if self._relabel_result is not None:
+            return self._relabel_result
+        return Prediction(
+            id=prediction_id,
+            batch_id=uuid4(),
+            label="memo",
+            confidence=0.42,
+            top5=[("memo", 0.42), ("invoice", 0.35)],
+            overlay_blob_key="overlays/sample.png",
+            model_sha256="abc123",
+            reviewed_by_user_id=reviewed_by_user_id,
+            reviewed_label=reviewed_label,
+            reviewed_at=datetime.now(UTC),
+            request_id=request_id,
+            created_at=datetime.now(UTC),
+        )
 
 
 class FakeAuditLogService:

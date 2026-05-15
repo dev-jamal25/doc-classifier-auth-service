@@ -10,6 +10,7 @@ from app.api.auth.users import current_active_user
 from app.api.deps import get_db_session, get_prediction_service, get_rbac_service
 from app.api.routers.predictions import router as predictions_router
 from app.db.models import User
+from app.domain.errors import PredictionNotFoundError
 from app.domain.predictions import Prediction
 from app.infra.vault import JwtSecrets
 from tests.unit.fakes import FakePredictionService
@@ -135,3 +136,89 @@ async def test_list_recent_predictions_rejects_invalid_limit(limit: int) -> None
         response = await client.get("/predictions/recent", params={"limit": limit})
 
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_review_prediction_without_token_returns_401() -> None:
+    fake = FakePredictionService()
+    prediction_id = uuid4()
+    transport = ASGITransport(app=_predictions_app(fake, authenticate=False))
+
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.patch(
+            f"/predictions/{prediction_id}/review",
+            json={"reviewed_label": "invoice"},
+        )
+
+    assert response.status_code == 401
+    assert fake.calls == []
+
+
+@pytest.mark.asyncio
+async def test_review_prediction_forbidden_without_permission() -> None:
+    fake = FakePredictionService()
+    prediction_id = uuid4()
+    transport = ASGITransport(app=_predictions_app(fake, allow=False))
+
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.patch(
+            f"/predictions/{prediction_id}/review",
+            json={"reviewed_label": "invoice"},
+        )
+
+    assert response.status_code == 403
+    assert fake.calls == []
+
+
+@pytest.mark.asyncio
+async def test_review_prediction_with_permission_returns_updated_prediction() -> None:
+    prediction_id = uuid4()
+    fake = FakePredictionService()
+    transport = ASGITransport(app=_predictions_app(fake))
+
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.patch(
+            f"/predictions/{prediction_id}/review",
+            json={"reviewed_label": "invoice"},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == str(prediction_id)
+    assert body["reviewed_label"] == "invoice"
+    assert body["reviewed_by_user_id"] is not None
+    assert fake.calls[0]["method"] == "relabel_prediction"
+    assert fake.calls[0]["prediction_id"] == prediction_id
+    assert fake.calls[0]["reviewed_label"] == "invoice"
+
+
+@pytest.mark.asyncio
+async def test_review_prediction_returns_404_when_prediction_missing() -> None:
+    prediction_id = uuid4()
+    fake = FakePredictionService(relabel_error=PredictionNotFoundError(prediction_id))
+    transport = ASGITransport(app=_predictions_app(fake))
+
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.patch(
+            f"/predictions/{prediction_id}/review",
+            json={"reviewed_label": "invoice"},
+        )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Prediction not found"}
+
+
+@pytest.mark.asyncio
+async def test_review_prediction_rejects_invalid_label() -> None:
+    prediction_id = uuid4()
+    fake = FakePredictionService()
+    transport = ASGITransport(app=_predictions_app(fake))
+
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.patch(
+            f"/predictions/{prediction_id}/review",
+            json={"reviewed_label": "not_a_document_label"},
+        )
+
+    assert response.status_code == 422
+    assert fake.calls == []

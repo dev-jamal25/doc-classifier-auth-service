@@ -8,6 +8,7 @@ def test_settings_defaults_load() -> None:
     assert settings.log_level == "INFO"
     assert settings.request_id_header == "X-Request-ID"
     assert settings.sftp_poll_interval_seconds == 5
+    assert settings.sftp_quarantine_dir == "/upload/quarantine"
     assert settings.classifier_min_test_top1 == 0.70
 
 

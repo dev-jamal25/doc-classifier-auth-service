@@ -9,6 +9,7 @@ from uuid import UUID
 from PIL import Image, ImageDraw, UnidentifiedImageError
 from redis import Redis
 from rq import Queue, SimpleWorker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.classifier.constants import CLASS_NAMES
 from app.classifier.model import ClassifierError, get_model, verify_artifacts
@@ -120,10 +121,17 @@ def render_overlay_png(document_bytes: bytes, *, label: str, confidence: float) 
     return output.getvalue()
 
 
-def _load_async_session_factory():
-    from app.db.session import async_session_factory
-
-    return async_session_factory
+def _build_worker_session_factory(database_url: str):
+    engine = create_async_engine(
+        database_url,
+        pool_pre_ping=True,
+    )
+    session_factory = async_sessionmaker(
+        bind=engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+    return engine, session_factory
 
 
 async def write_prediction_record(
@@ -138,7 +146,7 @@ async def write_prediction_record(
 ) -> None:
     context = _resolve_worker_context()
     cache_invalidator = RedisServiceCacheInvalidator(context.secrets.redis.url)
-    session_factory = _load_async_session_factory()
+    engine, session_factory = _build_worker_session_factory(context.secrets.db.database_url)
     try:
         async with session_factory() as session:
             prediction_service = PredictionService(
@@ -158,6 +166,7 @@ async def write_prediction_record(
             )
     finally:
         await cache_invalidator.close()
+        await engine.dispose()
 
 
 async def mark_batch_failed(
@@ -168,7 +177,7 @@ async def mark_batch_failed(
 ) -> None:
     context = _resolve_worker_context()
     cache_invalidator = RedisServiceCacheInvalidator(context.secrets.redis.url)
-    session_factory = _load_async_session_factory()
+    engine, session_factory = _build_worker_session_factory(context.secrets.db.database_url)
     try:
         async with session_factory() as session:
             batch_service = BatchService(BatchRepository(session), cache_invalidator)
@@ -180,6 +189,7 @@ async def mark_batch_failed(
                 )
     finally:
         await cache_invalidator.close()
+        await engine.dispose()
 
 
 async def process_classification_job(

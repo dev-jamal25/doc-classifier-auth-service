@@ -102,39 +102,68 @@ class PredictionService:
     ) -> Prediction:
         session = self._prediction_repository.session
 
-        async with session.begin():
-            existing_prediction = await self._prediction_repository.get(prediction_id)
-            if existing_prediction is None:
-                raise PredictionNotFoundError(prediction_id)
-
-            if existing_prediction.confidence >= REVIEW_THRESHOLD:
-                raise PredictionReviewNotAllowedError(
-                    prediction_id,
-                    existing_prediction.confidence,
-                    REVIEW_THRESHOLD,
+        if session.in_transaction():
+            try:
+                updated_prediction = await self._write_relabel_prediction(
+                    prediction_id=prediction_id,
+                    reviewed_label=reviewed_label,
+                    reviewed_by_user_id=reviewed_by_user_id,
+                    request_id=request_id,
                 )
-
-            updated_prediction = await self._prediction_repository.update_review(
-                prediction_id=prediction_id,
-                reviewed_label=reviewed_label,
-                reviewed_by_user_id=reviewed_by_user_id,
-            )
-
-            await self._audit_log_service.write_entry(
-                action=AuditAction.RELABEL,
-                actor_user_id=reviewed_by_user_id,
-                target_type="prediction",
-                target_id=prediction_id,
-                before={
-                    "label": existing_prediction.label,
-                    "reviewed_label": existing_prediction.reviewed_label,
-                },
-                after={"reviewed_label": reviewed_label},
-                request_id=request_id,
-            )
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+        else:
+            async with session.begin():
+                updated_prediction = await self._write_relabel_prediction(
+                    prediction_id=prediction_id,
+                    reviewed_label=reviewed_label,
+                    reviewed_by_user_id=reviewed_by_user_id,
+                    request_id=request_id,
+                )
 
         await self._cache_invalidator.invalidate_batch_detail(updated_prediction.batch_id)
         await self._cache_invalidator.invalidate_predictions_recent()
+        return updated_prediction
+
+    async def _write_relabel_prediction(
+        self,
+        *,
+        prediction_id: UUID,
+        reviewed_label: str,
+        reviewed_by_user_id: UUID,
+        request_id: UUID,
+    ) -> Prediction:
+        existing_prediction = await self._prediction_repository.get(prediction_id)
+        if existing_prediction is None:
+            raise PredictionNotFoundError(prediction_id)
+
+        if existing_prediction.confidence >= REVIEW_THRESHOLD:
+            raise PredictionReviewNotAllowedError(
+                prediction_id,
+                existing_prediction.confidence,
+                REVIEW_THRESHOLD,
+            )
+
+        updated_prediction = await self._prediction_repository.update_review(
+            prediction_id=prediction_id,
+            reviewed_label=reviewed_label,
+            reviewed_by_user_id=reviewed_by_user_id,
+        )
+
+        await self._audit_log_service.write_entry(
+            action=AuditAction.RELABEL,
+            actor_user_id=reviewed_by_user_id,
+            target_type="prediction",
+            target_id=prediction_id,
+            before={
+                "label": existing_prediction.label,
+                "reviewed_label": existing_prediction.reviewed_label,
+            },
+            after={"reviewed_label": reviewed_label},
+            request_id=request_id,
+        )
         return updated_prediction
 
     async def list_recent(self, *, limit: int = 50) -> list[Prediction]:

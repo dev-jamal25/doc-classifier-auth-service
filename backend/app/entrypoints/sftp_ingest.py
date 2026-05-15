@@ -30,6 +30,8 @@ _FAILURE_EMPTY_FILE = "empty file"
 _FAILURE_UNSUPPORTED_TYPE = "unsupported file type"
 _FAILURE_OVERSIZED = "file exceeds 50MB"
 _FAILURE_CORRUPTED_TIFF = "corrupted TIFF"
+_STARTUP_DEPENDENCY_TIMEOUT_SECONDS = 60.0
+_STARTUP_DEPENDENCY_RETRY_SECONDS = 5.0
 
 
 class HasBatchId(Protocol):
@@ -462,7 +464,7 @@ async def process_sftp_file(
         request_id_var.reset(request_token)
 
 
-def _assert_runtime_dependencies(
+def _assert_runtime_dependencies_once(
     *,
     sftp_client: SftpClient,
     blob_client: BlobClient,
@@ -476,6 +478,55 @@ def _assert_runtime_dependencies(
     blob_client.ensure_bucket(settings.minio_raw_bucket)
     if not queue_client.health_check():
         raise RuntimeError("Queue health check failed at startup.")
+
+
+async def _wait_for_runtime_dependencies(
+    *,
+    sftp_client: SftpClient,
+    blob_client: BlobClient,
+    queue_client: QueueClient,
+    settings: Settings,
+    timeout_seconds: float = _STARTUP_DEPENDENCY_TIMEOUT_SECONDS,
+    retry_seconds: float = _STARTUP_DEPENDENCY_RETRY_SECONDS,
+) -> None:
+    deadline = asyncio.get_running_loop().time() + timeout_seconds
+    attempt = 1
+
+    while True:
+        try:
+            _assert_runtime_dependencies_once(
+                sftp_client=sftp_client,
+                blob_client=blob_client,
+                queue_client=queue_client,
+                settings=settings,
+            )
+            if attempt > 1:
+                logger.info(
+                    "SFTP ingest runtime dependencies are ready.",
+                    extra={
+                        "event": "sftp_ingest_dependencies_ready",
+                        "attempt": attempt,
+                    },
+                )
+            return
+        except Exception as exc:
+            remaining_seconds = deadline - asyncio.get_running_loop().time()
+            if remaining_seconds <= 0:
+                raise RuntimeError("Runtime dependency checks failed at startup.") from exc
+
+            sleep_seconds = min(retry_seconds, remaining_seconds)
+            logger.warning(
+                "SFTP ingest dependency check failed; retrying.",
+                extra={
+                    "event": "sftp_ingest_dependency_retry",
+                    "attempt": attempt,
+                    "retry_seconds": sleep_seconds,
+                    "timeout_seconds": timeout_seconds,
+                    "failure_reason": str(exc),
+                },
+            )
+            attempt += 1
+            await asyncio.sleep(sleep_seconds)
 
 
 async def run_sftp_ingest(context: AppContext) -> None:
@@ -532,7 +583,7 @@ async def run_sftp_ingest(context: AppContext) -> None:
         )
 
     try:
-        _assert_runtime_dependencies(
+        await _wait_for_runtime_dependencies(
             sftp_client=sftp_client,
             blob_client=blob_client,
             queue_client=queue_client,

@@ -423,7 +423,9 @@ api = [
     { name = "fastapi" },
     { name = "fastapi-cache2" },
     { name = "jinja2" },
+    { name = "minio" },
     { name = "redis" },
+    { name = "rq" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 ingest = [
@@ -468,6 +470,7 @@ requires-dist = [
     { name = "fastapi-users", extras = ["sqlalchemy"], specifier = ">=15.0.5" },
     { name = "hvac", specifier = ">=2.4.0" },
     { name = "jinja2", marker = "extra == 'api'", specifier = ">=3.1.6" },
+    { name = "minio", marker = "extra == 'api'", specifier = ">=7.2.20" },
     { name = "minio", marker = "extra == 'ingest'", specifier = ">=7.2.20" },
     { name = "minio", marker = "extra == 'worker-ml'", specifier = ">=7.2.20" },
     { name = "paramiko", marker = "extra == 'ingest'", specifier = ">=5.0.0" },
@@ -477,6 +480,7 @@ requires-dist = [
     { name = "redis", marker = "extra == 'api'", specifier = ">=7.4.0" },
     { name = "redis", marker = "extra == 'ingest'", specifier = ">=7.4.0" },
     { name = "redis", marker = "extra == 'worker-ml'", specifier = ">=7.4.0" },
+    { name = "rq", marker = "extra == 'api'", specifier = ">=2.8.0" },
     { name = "rq", marker = "extra == 'ingest'", specifier = ">=2.8.0" },
     { name = "rq", marker = "extra == 'worker-ml'", specifier = ">=2.8.0" },
     { name = "sqlalchemy", extras = ["asyncio"] },

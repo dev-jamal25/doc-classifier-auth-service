@@ -6,10 +6,11 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.auth.users import current_active_user
 from app.api.deps import (
     cache_invalidator_dependency,
     db_session_dependency,
-    get_request_id,
+    request_id_dependency,
 )
 from app.core.lifespan import AppContext
 from app.db.models import User
@@ -37,16 +38,9 @@ def _get_demo_ingest_service(
         queue_name=context.settings.worker_queue_name,
     )
     batch_service = BatchService(BatchRepository(session), cache_invalidator)
-    return DemoIngestService(batch_service, blob_client, queue_client, context.settings.minio_raw_bucket)
-
-
-def _require_authenticated():
-    from app.api.auth.users import current_active_user
-
-    async def _dep(user: User = Depends(current_active_user)) -> User:
-        return user
-
-    return _dep
+    return DemoIngestService(
+        batch_service, blob_client, queue_client, context.settings.minio_raw_bucket
+    )
 
 
 class IngestResponse(BaseModel):
@@ -56,13 +50,17 @@ class IngestResponse(BaseModel):
 
 router = APIRouter(tags=["demo"])
 
+current_active_user_dependency = Depends(current_active_user)
+demo_ingest_service_dependency = Depends(_get_demo_ingest_service)
+file_upload = File(...)
+
 
 @router.post("/demo/ingest", response_model=IngestResponse, status_code=status.HTTP_202_ACCEPTED)
 async def demo_ingest(
-    file: UploadFile = File(...),
-    user: User = Depends(_require_authenticated()),
-    request_id: UUID = Depends(get_request_id),
-    service: DemoIngestService = Depends(_get_demo_ingest_service),
+    file: UploadFile = file_upload,
+    user: User = current_active_user_dependency,
+    request_id: UUID = request_id_dependency,
+    service: DemoIngestService = demo_ingest_service_dependency,
 ) -> IngestResponse:
     file_bytes = await file.read()
     filename = file.filename or "upload.tiff"
@@ -77,8 +75,10 @@ async def demo_ingest(
             request_id=request_id,
         )
     except DemoIngestError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except RuntimeError as exc:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
+        ) from exc
 
     return IngestResponse(batch_id=str(batch.id), state=batch.state)

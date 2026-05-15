@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from app.domain.batches import Batch
@@ -50,7 +50,7 @@ class DemoIngestService:
         if ext not in _ALLOWED_EXTENSIONS and content_type not in _ALLOWED_CONTENT_TYPES:
             raise DemoIngestError("Unsupported file type. Upload a TIFF (.tif or .tiff) file.")
 
-        today = datetime.now(timezone.utc).strftime("%Y/%m/%d")
+        today = datetime.now(UTC).strftime("%Y/%m/%d")
         blob_key = f"batches/{today}/{request_id}/{filename}"
 
         try:
@@ -71,7 +71,7 @@ class DemoIngestService:
             source_filename=filename,
             sftp_user=None,
             request_id=request_id,
-            received_at=datetime.now(timezone.utc),
+            received_at=datetime.now(UTC),
         )
         try:
             self._queue_client.enqueue_classification(job)

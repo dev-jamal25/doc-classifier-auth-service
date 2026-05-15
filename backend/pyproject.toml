@@ -8,6 +8,8 @@ dependencies = [
   "asyncpg",
   "hvac>=2.4.0",
   "fastapi-users[sqlalchemy]>=15.0.5",
+  "pycasbin>=2.8.0",
+  "casbin-async-sqlalchemy-adapter>=1.17.0",
 ]
 
 [project.optional-dependencies]
@@ -54,6 +56,21 @@ select = ["E", "F", "I", "B", "UP", "ASYNC"]
 [tool.mypy]
 python_version = "3.12"
 strict = false
+
+[[tool.mypy.overrides]]
+module = [
+  "casbin",
+  "casbin_async_sqlalchemy_adapter",
+  "hvac",
+  "paramiko",
+  "PIL",
+  "PIL.*",
+  "torch",
+  "torch.*",
+  "torchvision",
+  "torchvision.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 markers = [

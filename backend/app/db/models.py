@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID
-from sqlalchemy import DateTime, Float, ForeignKey, Text, func, text
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -12,6 +12,30 @@ from app.db.base import Base
 
 class User(SQLAlchemyBaseUserTableUUID, Base):
     __tablename__ = "users"
+
+
+class CasbinRule(Base):
+    __tablename__ = "casbin_rule"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ptype: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    v0: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    v1: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    v2: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    v3: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    v4: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    v5: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    def __str__(self) -> str:
+        values = [self.ptype]
+        for value in (self.v0, self.v1, self.v2, self.v3, self.v4, self.v5):
+            if value is None:
+                break
+            values.append(value)
+        return ", ".join(value for value in values if value is not None)
+
+    def __repr__(self) -> str:
+        return f'<CasbinRule {self.id}: "{self}">'
 
 
 class Batch(Base):

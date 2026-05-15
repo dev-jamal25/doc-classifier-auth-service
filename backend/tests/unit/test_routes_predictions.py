@@ -13,6 +13,7 @@ from app.db.models import User
 from app.domain.errors import PredictionNotFoundError
 from app.domain.predictions import Prediction
 from app.infra.vault import JwtSecrets
+from tests.unit.cache_helpers import init_test_cache
 from tests.unit.fakes import FakePredictionService
 
 JWT_SECRETS = JwtSecrets(secret="route-test-secret" * 3, algorithm="HS256", exp_minutes=30)
@@ -64,6 +65,7 @@ def _predictions_app(
     allow: bool = True,
     authenticate: bool = True,
 ) -> FastAPI:
+    init_test_cache()
     app = FastAPI()
     app.include_router(predictions_router)
     app.dependency_overrides[get_prediction_service] = lambda: fake_service
@@ -112,6 +114,22 @@ async def test_list_recent_predictions_returns_items_envelope() -> None:
     body = response.json()
     assert len(body["items"]) == 1
     assert body["items"][0]["id"] == str(prediction.id)
+
+
+@pytest.mark.asyncio
+async def test_list_recent_predictions_uses_response_cache_on_second_read() -> None:
+    prediction = _sample_prediction()
+    fake = FakePredictionService(predictions=[prediction])
+    transport = ASGITransport(app=_predictions_app(fake))
+
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        first_response = await client.get("/predictions/recent")
+        second_response = await client.get("/predictions/recent")
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 200
+    assert first_response.json() == second_response.json()
+    assert fake.calls == [{"method": "list_recent", "limit": 50}]
 
 
 @pytest.mark.asyncio

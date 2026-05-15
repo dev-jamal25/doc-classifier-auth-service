@@ -17,10 +17,12 @@ from app.core.logging import request_id_var
 from app.domain.queue import ClassificationJob
 from app.domain.sftp import FileInfo
 from app.infra.blob import BlobClient, BlobError
+from app.infra.cache import RedisServiceCacheInvalidator
 from app.infra.queue import QueueClient, QueueError
 from app.infra.sftp import SftpClient, SftpError
 from app.repositories.batches import BatchRepository
 from app.services.batches import BatchService
+from app.services.cache import ServiceCacheInvalidator
 
 logger = logging.getLogger(__name__)
 
@@ -171,10 +173,11 @@ async def write_pending_batch(
     source_filename: str,
     sftp_user: str | None,
     request_id: UUID,
+    cache_invalidator: ServiceCacheInvalidator | None = None,
 ) -> HasBatchId:
     session_factory = _load_async_session_factory()
     async with session_factory() as session:
-        service = BatchService(BatchRepository(session))
+        service = BatchService(BatchRepository(session), cache_invalidator)
         async with session.begin():
             return await service.create_from_sftp_drop(
                 blob_key=blob_key,
@@ -190,10 +193,11 @@ async def write_failed_batch(
     sftp_user: str | None,
     request_id: UUID,
     failure_reason: str,
+    cache_invalidator: ServiceCacheInvalidator | None = None,
 ) -> HasBatchId:
     session_factory = _load_async_session_factory()
     async with session_factory() as session:
-        service = BatchService(BatchRepository(session))
+        service = BatchService(BatchRepository(session), cache_invalidator)
         async with session.begin():
             return await service.create_failed_batch(
                 source_filename=source_filename,
@@ -494,7 +498,38 @@ async def run_sftp_ingest(context: AppContext) -> None:
         redis_url=secrets.redis.url,
         queue_name=settings.worker_queue_name,
     )
+    cache_invalidator = RedisServiceCacheInvalidator(secrets.redis.url)
     dedup_store = InMemoryDedupStore()
+
+    async def _write_pending_batch_with_cache(
+        *,
+        blob_key: str,
+        source_filename: str,
+        sftp_user: str | None,
+        request_id: UUID,
+    ) -> HasBatchId:
+        return await write_pending_batch(
+            blob_key=blob_key,
+            source_filename=source_filename,
+            sftp_user=sftp_user,
+            request_id=request_id,
+            cache_invalidator=cache_invalidator,
+        )
+
+    async def _write_failed_batch_with_cache(
+        *,
+        source_filename: str,
+        sftp_user: str | None,
+        request_id: UUID,
+        failure_reason: str,
+    ) -> HasBatchId:
+        return await write_failed_batch(
+            source_filename=source_filename,
+            sftp_user=sftp_user,
+            request_id=request_id,
+            failure_reason=failure_reason,
+            cache_invalidator=cache_invalidator,
+        )
 
     try:
         _assert_runtime_dependencies(
@@ -556,8 +591,8 @@ async def run_sftp_ingest(context: AppContext) -> None:
                     queue_client=queue_client,
                     settings=settings,
                     dedup_store=dedup_store,
-                    pending_batch_writer=write_pending_batch,
-                    failed_batch_writer=write_failed_batch,
+                    pending_batch_writer=_write_pending_batch_with_cache,
+                    failed_batch_writer=_write_failed_batch_with_cache,
                 )
 
             await _sleep_until_next_poll(
@@ -565,6 +600,7 @@ async def run_sftp_ingest(context: AppContext) -> None:
                 interval_seconds=settings.sftp_poll_interval_seconds,
             )
     finally:
+        await cache_invalidator.close()
         sftp_client.close()
         logger.info(
             "SFTP ingest stopped.",

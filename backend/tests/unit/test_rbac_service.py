@@ -8,6 +8,7 @@ from app.db.models import User
 from app.domain.enums import AuditAction
 from app.domain.errors import LastAdminRoleRemovalError, UserNotFoundError
 from app.domain.rbac import Permission, Role
+from app.services.cache import ServiceCacheInvalidator
 from app.services.rbac import RBACService
 
 
@@ -86,6 +87,23 @@ class _FakeAuditLogService:
         self.calls.append(kwargs)
 
 
+class _SpyCacheInvalidator(ServiceCacheInvalidator):
+    def __init__(self) -> None:
+        self.user_profile_calls: list[UUID] = []
+
+    async def invalidate_user_profile(self, user_id: UUID) -> None:
+        self.user_profile_calls.append(user_id)
+
+    async def invalidate_batches_list(self) -> None:
+        return None
+
+    async def invalidate_batch_detail(self, batch_id: UUID) -> None:
+        return None
+
+    async def invalidate_predictions_recent(self) -> None:
+        return None
+
+
 def _user(user_id: UUID | None = None) -> User:
     return User(
         id=user_id or uuid4(),
@@ -120,7 +138,8 @@ async def test_assign_role_writes_audit_and_commits() -> None:
     repo = _FakeUserRepository([actor, target])
     enforcer = _FakeEnforcer()
     audit = _FakeAuditLogService()
-    service = RBACService(enforcer, repo, audit)
+    cache = _SpyCacheInvalidator()
+    service = RBACService(enforcer, repo, audit, cache)
     request_id = uuid4()
 
     result = await service.assign_role(
@@ -136,6 +155,7 @@ async def test_assign_role_writes_audit_and_commits() -> None:
     assert audit.calls[0]["action"] == AuditAction.ROLE_CHANGE
     assert audit.calls[0]["before"] == {"roles": []}
     assert audit.calls[0]["after"] == {"roles": ["reviewer"]}
+    assert cache.user_profile_calls == [target.id]
 
 
 @pytest.mark.asyncio
@@ -145,7 +165,8 @@ async def test_assign_role_is_idempotent_without_audit() -> None:
     enforcer = _FakeEnforcer()
     enforcer.roles_by_user[str(target.id)] = {Role.REVIEWER.value}
     audit = _FakeAuditLogService()
-    service = RBACService(enforcer, repo, audit)
+    cache = _SpyCacheInvalidator()
+    service = RBACService(enforcer, repo, audit, cache)
 
     result = await service.assign_role(
         actor_user_id=None,
@@ -158,6 +179,7 @@ async def test_assign_role_is_idempotent_without_audit() -> None:
     assert result.roles == [Role.REVIEWER]
     assert repo.session.commits == 0
     assert audit.calls == []
+    assert cache.user_profile_calls == []
 
 
 @pytest.mark.asyncio
@@ -189,7 +211,8 @@ async def test_remove_role_allows_admin_removal_when_another_admin_exists() -> N
     enforcer.roles_by_user[str(target.id)] = {Role.ADMIN.value}
     enforcer.roles_by_user[str(other_admin.id)] = {Role.ADMIN.value}
     audit = _FakeAuditLogService()
-    service = RBACService(enforcer, repo, audit)
+    cache = _SpyCacheInvalidator()
+    service = RBACService(enforcer, repo, audit, cache)
 
     result = await service.remove_role(
         actor_user_id=other_admin.id,
@@ -203,6 +226,7 @@ async def test_remove_role_allows_admin_removal_when_another_admin_exists() -> N
     assert repo.session.commits == 1
     assert audit.calls[0]["before"] == {"roles": ["admin"]}
     assert audit.calls[0]["after"] == {"roles": []}
+    assert cache.user_profile_calls == [target.id]
 
 
 @pytest.mark.asyncio

@@ -24,9 +24,13 @@ from app.services.predictions import PredictionService
 
 class _SpyInvalidator(ServiceCacheInvalidator):
     def __init__(self) -> None:
+        self.user_profile_calls: list[UUID] = []
         self.batches_list_calls = 0
         self.batch_detail_calls: list[UUID] = []
         self.predictions_recent_calls = 0
+
+    async def invalidate_user_profile(self, user_id: UUID) -> None:
+        self.user_profile_calls.append(user_id)
 
     async def invalidate_batches_list(self) -> None:
         self.batches_list_calls += 1
@@ -188,6 +192,30 @@ async def test_create_failed_batch_calls_repo_and_invalidates_list() -> None:
 
 
 @pytest.mark.asyncio
+async def test_change_state_updates_batch_and_invalidates_list_and_detail() -> None:
+    batch_id = uuid4()
+    updated_batch = _sample_batch(state=BatchState.FAILED, batch_id=batch_id)
+    repo = SimpleNamespace(update_state=AsyncMock(return_value=updated_batch))
+    cache = _SpyInvalidator()
+    service = BatchService(repo, cache)
+
+    result = await service.change_state(
+        batch_id=batch_id,
+        new_state=BatchState.FAILED,
+        failure_reason="worker_invalid_image",
+    )
+
+    assert result.id == batch_id
+    repo.update_state.assert_awaited_once_with(
+        batch_id=batch_id,
+        new_state=BatchState.FAILED,
+        failure_reason="worker_invalid_image",
+    )
+    assert cache.batches_list_calls == 1
+    assert cache.batch_detail_calls == [batch_id]
+
+
+@pytest.mark.asyncio
 async def test_record_prediction_writes_prediction_updates_batch_audits_and_invalidates() -> None:
     session = _FakeSession()
     batch_id = uuid4()
@@ -256,6 +284,7 @@ async def test_record_prediction_writes_prediction_updates_batch_audits_and_inva
         after={"state": "completed"},
         request_id=request_id,
     )
+    assert cache.batches_list_calls == 1
     assert cache.batch_detail_calls == [batch_id]
     assert cache.predictions_recent_calls == 1
 
@@ -293,6 +322,7 @@ async def test_record_prediction_raises_batch_not_found_for_missing_batch() -> N
     prediction_repo.get_by_batch_id.assert_not_awaited()
     batch_repo.update_state.assert_not_awaited()
     audit_service.write_entry.assert_not_awaited()
+    assert cache.batches_list_calls == 0
     assert cache.batch_detail_calls == []
     assert cache.predictions_recent_calls == 0
 
@@ -333,6 +363,7 @@ async def test_record_prediction_returns_existing_prediction_for_completed_batch
     prediction_repo.create.assert_not_awaited()
     batch_repo.update_state.assert_not_awaited()
     audit_service.write_entry.assert_not_awaited()
+    assert cache.batches_list_calls == 0
     assert cache.batch_detail_calls == []
     assert cache.predictions_recent_calls == 0
 
@@ -372,6 +403,7 @@ async def test_record_prediction_raises_when_completed_batch_has_no_prediction()
     prediction_repo.create.assert_not_awaited()
     batch_repo.update_state.assert_not_awaited()
     audit_service.write_entry.assert_not_awaited()
+    assert cache.batches_list_calls == 0
     assert cache.batch_detail_calls == []
     assert cache.predictions_recent_calls == 0
 
@@ -409,6 +441,7 @@ async def test_record_prediction_skips_invalidation_when_write_fails() -> None:
     prediction_repo.get_by_batch_id.assert_not_awaited()
     batch_repo.update_state.assert_not_awaited()
     audit_service.write_entry.assert_not_awaited()
+    assert cache.batches_list_calls == 0
     assert cache.batch_detail_calls == []
     assert cache.predictions_recent_calls == 0
 

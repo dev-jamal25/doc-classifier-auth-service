@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi_cache.decorator import cache
 
 from app.api.deps import get_prediction_service, request_id_dependency, require_permission
 from app.api.schemas.predictions import (
@@ -10,6 +11,7 @@ from app.api.schemas.predictions import (
 )
 from app.db.models import User
 from app.domain.errors import PredictionNotFoundError, PredictionReviewNotAllowedError
+from app.infra.cache import CACHE_NAMESPACE_PREDICTIONS_RECENT, CACHE_TTL_PREDICTIONS_SECONDS
 from app.services.predictions import PredictionService
 
 prediction_service_dependency = Depends(get_prediction_service)
@@ -21,6 +23,7 @@ router = APIRouter(tags=["predictions"])
 
 
 @router.get("/predictions/recent", response_model=PredictionListResponse)
+@cache(expire=CACHE_TTL_PREDICTIONS_SECONDS, namespace=CACHE_NAMESPACE_PREDICTIONS_RECENT)
 async def list_recent_predictions(
     limit: int = predictions_limit_query,
     _user: User = predictions_read_dependency,

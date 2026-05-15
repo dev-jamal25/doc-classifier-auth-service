@@ -9,6 +9,7 @@ from app.domain.errors import LastAdminRoleRemovalError, UserNotFoundError
 from app.domain.rbac import Role, UserRoles, known_roles
 from app.repositories.users import UserRepository
 from app.services.audit_log import AuditLogService
+from app.services.cache import NoOpServiceCacheInvalidator, ServiceCacheInvalidator
 
 
 class RBACService:
@@ -17,10 +18,12 @@ class RBACService:
         enforcer: casbin.AsyncEnforcer,
         user_repository: UserRepository,
         audit_log_service: AuditLogService,
+        cache_invalidator: ServiceCacheInvalidator | None = None,
     ) -> None:
         self._enforcer = enforcer
         self._user_repository = user_repository
         self._audit_log_service = audit_log_service
+        self._cache_invalidator = cache_invalidator or NoOpServiceCacheInvalidator()
 
     async def has_permission(self, user_id: UUID, obj: str, act: str) -> bool:
         return bool(self._enforcer.enforce(str(user_id), obj, act))
@@ -58,6 +61,7 @@ class RBACService:
             await self._user_repository.session.rollback()
             raise
 
+        await self._cache_invalidator.invalidate_user_profile(target_user_id)
         return UserRoles(user_id=target_user_id, roles=after_roles, changed=True)
 
     async def remove_role(
@@ -95,6 +99,7 @@ class RBACService:
             await self._user_repository.session.rollback()
             raise
 
+        await self._cache_invalidator.invalidate_user_profile(target_user_id)
         return UserRoles(user_id=target_user_id, roles=after_roles, changed=True)
 
     async def _ensure_user_exists(self, user_id: UUID) -> None:

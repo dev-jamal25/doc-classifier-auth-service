@@ -1,11 +1,17 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi_cache.decorator import cache
 
 from app.api.deps import get_batch_service, require_permission
 from app.api.schemas.batches import BatchListResponse, BatchResponse
 from app.db.models import User
 from app.domain.enums import BatchState
+from app.infra.cache import (
+    CACHE_NAMESPACE_BATCHES_DETAIL,
+    CACHE_NAMESPACE_BATCHES_LIST,
+    CACHE_TTL_BATCHES_SECONDS,
+)
 from app.services.batches import BatchService
 
 batch_service_dependency = Depends(get_batch_service)
@@ -18,6 +24,7 @@ router = APIRouter(tags=["batches"])
 
 
 @router.get("/batches", response_model=BatchListResponse)
+@cache(expire=CACHE_TTL_BATCHES_SECONDS, namespace=CACHE_NAMESPACE_BATCHES_LIST)
 async def list_batches(
     limit: int = batches_limit_query,
     offset: int = batches_offset_query,
@@ -30,6 +37,7 @@ async def list_batches(
 
 
 @router.get("/batches/{batch_id}", response_model=BatchResponse)
+@cache(expire=CACHE_TTL_BATCHES_SECONDS, namespace=CACHE_NAMESPACE_BATCHES_DETAIL)
 async def get_batch(
     batch_id: UUID,
     _user: User = batches_read_dependency,

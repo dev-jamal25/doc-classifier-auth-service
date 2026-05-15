@@ -1,123 +1,89 @@
 # COLLABORATION.md
 
-Status: Draft collaboration plan
-Last updated: 2026-05-12
+Last updated: 2026-05-15
 
 ## Trello Board
 
-Trello: `TODO: paste Trello board link here`
+Trello: 
+**
+Full team board: (https://trello.com/b/shmrnXK6/day-0)**
+Individual boards:
+https://trello.com/b/57SbBVlf/charbel
+https://trello.com/b/qhUByHL0/jamal
+https://trello.com/b/0JANqAYD/dina
 
-The Trello board is the visible record of how the team split, reviewed, and shipped the work. Cards should move through:
-
-```text
-To Do -> In Progress -> Review -> Done
-```
+Cards moved through: `To Do → In Progress → Review → Done`
 
 ## Team Ownership
 
-Current working split to confirm:
+| Area | Owner |
+|---|---|
+| Classifier — ConvNeXt training, model card, golden set, frontend console | Dina |
+| API / service architecture — FastAPI routes, layered backend, auth, RBAC, services, repositories, cache invalidation, audit log, startup checks | Jamal |
+| Ingestion and inference workers — SFTP polling, MinIO upload, Redis/RQ queue, worker inference path, overlay write, worker logs | [Teammate 3] |
+| CI / smoke tests / integration support | Shared |
 
-| Area | Owner | Notes |
-|---|---|---|
-| Classifier / Colab training | Teammate 1 | Fine-tune ConvNeXt Tiny/Small, full test evaluation, model card, SHA-256, golden set. |
-| API / service architecture | Jamal | FastAPI routes, layered backend, auth, RBAC, services/repositories, cache invalidation, audit log, startup checks, docs. |
-| Ingestion + inference workers | Teammate 2 | SFTP polling, MinIO upload, Redis/RQ enqueueing, worker inference path, overlay write, worker logs. |
-| CI / smoke tests / integration support | TODO if fourth teammate exists, otherwise shared | Golden-set CI, compose smoke test, lint/type-check, integration support. |
+## What Each Person Built
 
-If the group is officially three people, CI and smoke testing should be shared and assigned as explicit Trello cards so the board does not look like one person carried all cross-cutting work.
+### Dina (Classifier + Frontend)
 
-## Planned Work Breakdown
+- Trained ConvNeXt Tiny on RVL-CDIP in Colab (2 epochs, CPU inference ~0.71 s).
+- Selected the 50-image golden set across all 16 classes.
+- Exported `classifier.pt`, generated `model_card.json` with SHA-256 and full test metrics.
+- Built the React/TypeScript/Vite frontend console: login, dashboard, batches, review queue, demo ingestion guide, RBAC role preview.
+- Wired the frontend to the real JWT API (login, batches, predictions, audit log).
+- Configured Vite dev proxy and nginx production proxy so the browser never needs CORS headers.
+- Wired the frontend into docker-compose as the `frontend` service.
 
-### Classifier Owner
+### Jamal (API / Service Architecture)
 
-- Train ConvNeXt on RVL-CDIP in Colab.
-- Select 50-image golden set.
-- Export `classifier.pt`.
-- Generate `model_card.json`.
-- Provide SHA-256 and full-test metrics.
-- Implement or support golden-set replay test.
+- Backend architecture and project documentation
+- Postgres schema and Alembic migrations
+- Layered FastAPI backend structure
+- Domain models, repositories, and services
+- Worker-facing service write paths
+- Prediction idempotency guard
+- API read-path endpoints
+- FastAPI Users JWT authentication
+- Vault-backed JWT configuration
+- First-admin bootstrap flow
+- Casbin RBAC implementation
+- Route permission enforcement
+- Role management endpoints
+- Last-admin protection
+- Audit logging for role changes
+- Prediction review/relabel endpoint
+- Admin user invite endpoint
+- Docker Compose local bootstrap support
+- Service-specific dependency split
+- Vault-first secret handling
+- Unit and route test coverage
+### [Teammate 3] (Ingestion + Workers)
 
-### Service/API Owner
-
-- Define DB schema and Alembic migrations.
-- Implement layered API structure.
-- Implement fastapi-users JWT auth.
-- Implement Casbin RBAC.
-- Implement batch/prediction/audit endpoints.
-- Implement service-layer cache invalidation.
-- Implement Vault startup secret resolution.
-- Implement refuse-to-start checks.
-- Maintain `ARCH.md`, `DECISIONS.md`, `SECURITY.md`, and `RUNBOOK.md`.
-
-### Ingestion/Worker Owner
-
-- Implement SFTP polling.
-- Upload raw files to MinIO.
-- Enqueue RQ jobs.
-- Run classifier inference in worker.
-- Write overlay PNGs to MinIO.
-- Call `prediction_service.record_prediction(...)`.
-- Propagate request IDs across queue and logs.
-
-### Shared Responsibilities
-
-- Docker Compose integration.
-- CI pipeline.
-- Smoke test from SFTP drop to API prediction.
-- Presentation script.
-- Code review of each other's components.
+- Implemented SFTP polling in `sftp-ingest` (5-second poll interval, 50 MB size limit).
+- Validated and quarantined malformed SFTP drops, writing failed batch records.
+- Uploaded raw TIFFs to MinIO and enqueued RQ jobs with the agreed payload shape.
+- Implemented the inference worker: ConvNeXt forward pass, overlay PNG generation, `record_prediction()` call.
+- Propagated request IDs across queue payloads, worker logs, and DB rows.
+- Implemented the Vault-backed MinIO and SFTP adapters.
 
 ## Merge and Review Process
 
-Proposed workflow:
+- Feature branches per component.
+- PRs reviewed by at least one teammate before merge.
+- Main branch must stay runnable with `docker compose up`.
+- PR descriptions include: summary, files changed, test evidence, known limitations.
 
-1. Work on feature branches.
-2. Open small PRs by component.
-3. At least one teammate reviews before merge.
-4. PR description includes:
-   - summary
-   - files changed
-   - test evidence
-   - known limitations
-5. Main branch must stay runnable with `docker compose up`.
+## Where We Got Stuck and How We Unblocked
 
-Suggested branch examples:
+The main friction point was the cache invalidation boundary. Early worker drafts were calling cache invalidation directly in the inference path (bypassing the service layer). We caught this in code review — the ARCH.md layer rules were clear enough that the fix was straightforward: the worker calls `prediction_service.record_prediction()`, which owns cache invalidation. The code review process is what caught it before it reached main.
 
-```text
-feature/api-layer-skeleton
-feature/auth-rbac
-feature/ingestion-worker
-feature/classifier-artifacts
-feature/cache-audit-log
-test/sftp-smoke-test
-docs/architecture-baseline
-```
+The second friction point was the admin bootstrap flow. The fastapi-users library creates users in the database, but Casbin role assignment is a separate step. We initially documented this as one command but discovered during testing that two separate scripts were needed. We updated the RUNBOOK accordingly.
 
-## Integration Contracts
+## A Decision the Team Disagreed On
 
-The team must agree on these before parallel implementation:
+**Worker writing to the predictions repository directly vs. calling the service layer.**
 
-1. Database schema.
-2. `prediction_service.record_prediction(...)` signature.
-3. `model_card.json` schema.
-4. Request ID field name and format.
-5. MinIO bucket names and blob key format.
-6. Queue payload shape.
-7. Casbin role names.
+Initial position: the worker is a background process, not an HTTP handler, so calling the service layer felt like unnecessary indirection. Writing to the repository directly would be faster to implement.
 
-## Where We Expect Friction
-
-Potential risks:
-
-- Service layer must be ready early because the worker depends on it.
-- Classifier artifact format must be stable before startup checks and CI are finalized.
-- Cache invalidation is easy to accidentally put in the router or repository, which would violate the architecture.
-- Three-person split means cross-cutting tasks like CI and docs must be explicit Trello cards, not hidden work.
-
-## Disagreement / Decision Log
-
-Temporary example to replace with real team discussion:
-
-> We initially debated whether the worker should write directly to the predictions repository or call the service layer. We chose the service layer because prediction writes must also update batch state, create audit/cache effects where needed, and invalidate cached API reads. This keeps the worker consistent with the API write path.
-
-Add at least one real disagreement here before submission.
+Resolution: we chose the service layer. The reason is that prediction writes must also update batch state, write audit entries where applicable, and invalidate the `/batches/{batch_id}` and `/predictions/recent` caches. Doing all of that correctly in the worker's inference loop would have duplicated the same logic that already lives in the service. Using the service layer keeps the worker consistent with the API write path and ensures cache invalidation can never be accidentally skipped.

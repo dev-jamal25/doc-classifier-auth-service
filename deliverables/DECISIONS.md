@@ -440,11 +440,55 @@ The payload includes a few metadata fields the worker may not strictly need for 
 
 ---
 
-## Remaining Decisions To Add Later
+## D-013: Frontend Framework
 
-The following are intentionally not finalized yet:
+Status: Accepted
+Date: 2026-05-14
+Owner: Classifier owner (frontend lead)
 
-- Final `model_card.json` schema from the classifier owner
-- Whether the smoke test runs fully in CI or partly manual for demo
-- Final MinIO bucket names and blob key format
-- Final CI responsibilities and test split between teammates
+### Context
+
+The project brief requires a frontend console for the demo. The team evaluated Streamlit (quick to build, Python-native) against a React/TypeScript/Vite stack (more control, better UX).
+
+### Decision
+
+Use React 18 with TypeScript, Vite, Tailwind CSS, and react-router-dom. Served by nginx in Docker production; Vite dev server in local development.
+
+### Why
+
+The permission and role story (three distinct roles, real-time RBAC demo) is easier to represent in a proper SPA with React Router protected routes. Streamlit's page model would have required more workarounds for that flow.
+
+### Alternatives Considered
+
+- Streamlit (Python, no build step, simpler for pure data display)
+- No frontend (Swagger UI only)
+
+### Trade-offs
+
+React requires a build step and npm dependency management. The nginx proxy eliminates CORS complexity in production. The Vite dev proxy handles it in development.
+
+---
+
+## D-014: Nginx API Proxy for Frontend
+
+Status: Accepted
+Date: 2026-05-14
+Owner: Classifier owner (frontend lead)
+
+### Context
+
+The React SPA runs on a different port from the FastAPI backend. CORS must be handled, and the browser must be able to reach all API paths.
+
+### Decision
+
+In Docker production: nginx proxies `/auth`, `/me`, `/batches`, `/predictions`, `/admin`, `/healthz` to `http://api:8000` internally. The browser only talks to nginx on port 80 (exposed as 3000).
+
+In local dev: Vite's `server.proxy` forwards those same paths to `http://localhost:8000`.
+
+### Why
+
+Both approaches avoid CORS headers entirely. The browser always sees a single origin.
+
+### Trade-offs
+
+Adds an nginx config file and a build step, but removes the need for `CORSMiddleware` in FastAPI and avoids hardcoding absolute API URLs in the frontend bundle.

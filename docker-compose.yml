@@ -199,8 +199,12 @@ services:
       REDIS_URL: redis://redis:6379/0
       WORKER_QUEUE_NAME: ${WORKER_QUEUE_NAME:-doc-jobs}
 
-  # frontend:
-  #   # TODO: choose framework (React vs Streamlit) before enabling.
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"

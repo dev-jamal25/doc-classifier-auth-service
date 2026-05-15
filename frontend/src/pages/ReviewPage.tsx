@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BrainCircuit, ShieldCheck } from "lucide-react";
@@ -8,9 +8,11 @@ import { ReviewQueue } from "../components/predictions/ReviewQueue";
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { useAuth } from "../lib/auth";
+import { API_ENDPOINTS, type ApiPrediction, mapPrediction } from "../lib/api";
+import { apiGet } from "../lib/apiClient";
 import { REVIEW_THRESHOLD, mockPredictions } from "../lib/mockData";
 import { cn } from "../lib/styles";
-import type { Role } from "../types";
+import type { Prediction, Role } from "../types";
 
 const roles: Role[] = ["admin", "reviewer", "auditor"];
 
@@ -18,12 +20,24 @@ export function ReviewPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [activeRole, setActiveRole] = useState<Role>(() => user?.roles[0] ?? "admin");
+  const [predictions, setPredictions] = useState<Prediction[]>(mockPredictions);
+
+  useEffect(() => {
+    apiGet<{ items: ApiPrediction[] }>(API_ENDPOINTS.recentPredictions)
+      .then((data) => {
+        const mapped = data.items.map(mapPrediction);
+        if (mapped.length > 0) {
+          setPredictions(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   if (!user) {
     return null;
   }
 
-  const reviewable = mockPredictions.filter((prediction) => prediction.confidence < REVIEW_THRESHOLD);
+  const reviewable = predictions.filter((prediction) => prediction.confidence < REVIEW_THRESHOLD);
 
   const handleLogout = () => {
     logout();
@@ -78,7 +92,7 @@ export function ReviewPage() {
           </Card>
         </Card>
 
-        <ReviewQueue activeRole={activeRole} className="lg:col-span-8" predictions={mockPredictions} />
+        <ReviewQueue activeRole={activeRole} className="lg:col-span-8" predictions={predictions} />
       </motion.div>
     </AppShell>
   );

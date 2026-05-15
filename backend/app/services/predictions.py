@@ -1,7 +1,13 @@
 from uuid import UUID
 
+from app.classifier.constants import REVIEW_THRESHOLD
 from app.domain.enums import AuditAction, BatchState
-from app.domain.errors import BatchAlreadyCompletedError, BatchNotFoundError
+from app.domain.errors import (
+    BatchAlreadyCompletedError,
+    BatchNotFoundError,
+    PredictionNotFoundError,
+    PredictionReviewNotAllowedError,
+)
 from app.domain.predictions import Prediction
 from app.repositories.batches import BatchRepository
 from app.repositories.predictions import PredictionRepository
@@ -91,11 +97,44 @@ class PredictionService:
         prediction_id: UUID,
         reviewed_label: str,
         reviewed_by_user_id: UUID,
+        request_id: UUID,
     ) -> Prediction:
-        # TODO(authz): enforce reviewer role and confidence < 0.7 constraint.
-        # TODO(audit): write relabel audit entry.
-        # TODO(cache): invalidate GET /batches/{batch_id} and GET /predictions/recent.
-        raise NotImplementedError("PredictionService.relabel_prediction not yet implemented")
+        session = self._prediction_repository.session
+
+        async with session.begin():
+            existing_prediction = await self._prediction_repository.get(prediction_id)
+            if existing_prediction is None:
+                raise PredictionNotFoundError(prediction_id)
+
+            if existing_prediction.confidence >= REVIEW_THRESHOLD:
+                raise PredictionReviewNotAllowedError(
+                    prediction_id,
+                    existing_prediction.confidence,
+                    REVIEW_THRESHOLD,
+                )
+
+            updated_prediction = await self._prediction_repository.update_review(
+                prediction_id=prediction_id,
+                reviewed_label=reviewed_label,
+                reviewed_by_user_id=reviewed_by_user_id,
+            )
+
+            await self._audit_log_service.write_entry(
+                action=AuditAction.RELABEL,
+                actor_user_id=reviewed_by_user_id,
+                target_type="prediction",
+                target_id=prediction_id,
+                before={
+                    "label": existing_prediction.label,
+                    "reviewed_label": existing_prediction.reviewed_label,
+                },
+                after={"reviewed_label": reviewed_label},
+                request_id=request_id,
+            )
+
+        await self._cache_invalidator.invalidate_batch_detail(updated_prediction.batch_id)
+        await self._cache_invalidator.invalidate_predictions_recent()
+        return updated_prediction
 
     async def list_recent(self, *, limit: int = 50) -> list[Prediction]:
         # TODO(cache): cache GET /predictions/recent with TTL 60s via fastapi-cache2.

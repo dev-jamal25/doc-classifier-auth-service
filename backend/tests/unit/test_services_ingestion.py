@@ -10,7 +10,12 @@ import pytest
 from app.domain.audit_log import AuditLogEntry
 from app.domain.batches import Batch
 from app.domain.enums import AuditAction, BatchSource, BatchState
-from app.domain.errors import BatchAlreadyCompletedError, BatchNotFoundError
+from app.domain.errors import (
+    BatchAlreadyCompletedError,
+    BatchNotFoundError,
+    PredictionNotFoundError,
+    PredictionReviewNotAllowedError,
+)
 from app.domain.predictions import Prediction
 from app.services.batches import BatchService
 from app.services.cache import ServiceCacheInvalidator
@@ -80,6 +85,34 @@ def _sample_prediction(batch_id: UUID) -> Prediction:
         model_sha256="abc123",
         reviewed_by_user_id=None,
         reviewed_label=None,
+        reviewed_at=None,
+        request_id=uuid4(),
+        created_at=datetime.now(UTC),
+    )
+
+
+def _sample_reviewable_prediction(
+    *,
+    prediction_id: UUID | None = None,
+    batch_id: UUID | None = None,
+    reviewed_label: str | None = None,
+) -> Prediction:
+    return Prediction(
+        id=prediction_id or uuid4(),
+        batch_id=batch_id or uuid4(),
+        label="memo",
+        confidence=0.42,
+        top5=[
+            ("memo", 0.42),
+            ("invoice", 0.35),
+            ("letter", 0.12),
+            ("form", 0.07),
+            ("budget", 0.04),
+        ],
+        overlay_blob_key="overlays/sample.png",
+        model_sha256="abc123",
+        reviewed_by_user_id=None,
+        reviewed_label=reviewed_label,
         reviewed_at=None,
         request_id=uuid4(),
         created_at=datetime.now(UTC),
@@ -375,6 +408,132 @@ async def test_record_prediction_skips_invalidation_when_write_fails() -> None:
 
     prediction_repo.get_by_batch_id.assert_not_awaited()
     batch_repo.update_state.assert_not_awaited()
+    audit_service.write_entry.assert_not_awaited()
+    assert cache.batch_detail_calls == []
+    assert cache.predictions_recent_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_relabel_prediction_updates_review_audits_and_invalidates() -> None:
+    session = _FakeSession()
+    prediction_id = uuid4()
+    batch_id = uuid4()
+    reviewer_id = uuid4()
+    request_id = uuid4()
+    existing_prediction = _sample_reviewable_prediction(
+        prediction_id=prediction_id,
+        batch_id=batch_id,
+    )
+    updated_prediction = existing_prediction.model_copy(
+        update={
+            "reviewed_label": "invoice",
+            "reviewed_by_user_id": reviewer_id,
+            "reviewed_at": datetime.now(UTC),
+        }
+    )
+    prediction_repo = SimpleNamespace(
+        session=session,
+        get=AsyncMock(return_value=existing_prediction),
+        update_review=AsyncMock(return_value=updated_prediction),
+    )
+    audit_service = SimpleNamespace(write_entry=AsyncMock())
+    cache = _SpyInvalidator()
+    service = PredictionService(
+        prediction_repo,
+        SimpleNamespace(session=session),
+        audit_service,
+        cache,
+    )
+
+    result = await service.relabel_prediction(
+        prediction_id=prediction_id,
+        reviewed_label="invoice",
+        reviewed_by_user_id=reviewer_id,
+        request_id=request_id,
+    )
+
+    assert result.reviewed_label == "invoice"
+    prediction_repo.get.assert_awaited_once_with(prediction_id)
+    prediction_repo.update_review.assert_awaited_once_with(
+        prediction_id=prediction_id,
+        reviewed_label="invoice",
+        reviewed_by_user_id=reviewer_id,
+    )
+    audit_service.write_entry.assert_awaited_once_with(
+        action=AuditAction.RELABEL,
+        actor_user_id=reviewer_id,
+        target_type="prediction",
+        target_id=prediction_id,
+        before={"label": "memo", "reviewed_label": None},
+        after={"reviewed_label": "invoice"},
+        request_id=request_id,
+    )
+    assert cache.batch_detail_calls == [batch_id]
+    assert cache.predictions_recent_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_relabel_prediction_raises_prediction_not_found() -> None:
+    session = _FakeSession()
+    prediction_id = uuid4()
+    prediction_repo = SimpleNamespace(
+        session=session,
+        get=AsyncMock(return_value=None),
+        update_review=AsyncMock(),
+    )
+    audit_service = SimpleNamespace(write_entry=AsyncMock())
+    cache = _SpyInvalidator()
+    service = PredictionService(
+        prediction_repo,
+        SimpleNamespace(session=session),
+        audit_service,
+        cache,
+    )
+
+    with pytest.raises(PredictionNotFoundError, match=str(prediction_id)):
+        await service.relabel_prediction(
+            prediction_id=prediction_id,
+            reviewed_label="invoice",
+            reviewed_by_user_id=uuid4(),
+            request_id=uuid4(),
+        )
+
+    prediction_repo.update_review.assert_not_awaited()
+    audit_service.write_entry.assert_not_awaited()
+    assert cache.batch_detail_calls == []
+    assert cache.predictions_recent_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_relabel_prediction_rejects_high_confidence_prediction() -> None:
+    session = _FakeSession()
+    prediction_id = uuid4()
+    high_confidence_prediction = _sample_prediction(uuid4()).model_copy(
+        update={"id": prediction_id, "confidence": 0.92}
+    )
+    prediction_repo = SimpleNamespace(
+        session=session,
+        get=AsyncMock(return_value=high_confidence_prediction),
+        update_review=AsyncMock(),
+    )
+    audit_service = SimpleNamespace(write_entry=AsyncMock())
+    cache = _SpyInvalidator()
+    service = PredictionService(
+        prediction_repo,
+        SimpleNamespace(session=session),
+        audit_service,
+        cache,
+    )
+
+    with pytest.raises(PredictionReviewNotAllowedError, match=str(prediction_id)):
+        await service.relabel_prediction(
+            prediction_id=prediction_id,
+            reviewed_label="invoice",
+            reviewed_by_user_id=uuid4(),
+            request_id=uuid4(),
+        )
+
+    prediction_repo.update_review.assert_not_awaited()
     audit_service.write_entry.assert_not_awaited()
     assert cache.batch_detail_calls == []
     assert cache.predictions_recent_calls == 0

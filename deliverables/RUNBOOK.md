@@ -1,190 +1,284 @@
 # RUNBOOK.md
 
-Status: Draft operational guide
-Last updated: 2026-05-14
+Operational guide for the document classifier service.
 
 ## 1. Local Startup
 
-**First-time setup**: this repository uses Git LFS for `classifier.pt`. Before the first build, run:
+**First-time setup** — the repository uses Git LFS for `classifier.pt`. Before the first build:
 
 ```bash
 git lfs install
 git lfs pull
 ```
 
-If you skip this, the worker container will refuse to start with a SHA-256 mismatch.
+If you skip this the worker refuses to start with a SHA-256 mismatch error.
 
-Primary startup path (from a fresh clone):
+**Start the full stack:**
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
-Expected behavior:
+Expected startup order:
 
-1. Vault, Postgres, Redis, MinIO, and SFTP start.
-2. `migrate` runs Alembic migrations and exits successfully.
-3. `api` starts after startup checks pass.
-4. `worker` starts after dependencies are healthy and begins listening on `doc-jobs`.
-5. `sftp-ingest` starts polling the SFTP drop folder.
+1. `vault` starts in dev mode.
+2. `vault-init` seeds Vault KV paths with dev secrets and exits.
+3. `db`, `redis`, `minio`, `sftp` start.
+4. `minio-init` creates the required MinIO buckets and exits.
+5. `migrate` runs `alembic upgrade head` and exits.
+6. `api`, `worker`, `sftp-ingest`, `frontend` start.
 
-Environment note:
+**Access points:**
 
-- `.env.example` keeps Vault bootstrap, ports, and non-secret settings only.
-- App runtime secrets are still loaded from Vault (`load_secrets()`), never from `.env`.
-- Bootstrap credentials for Postgres/MinIO/SFTP rely on Compose dev-only fallbacks unless you override them locally.
+| Service | URL |
+|---|---|
+| Frontend console | http://localhost:3000 |
+| API + Swagger | http://localhost:8000/docs |
+| MinIO console | http://localhost:9001 (minioadmin / minioadmin) |
+| Vault UI | http://localhost:8200 (token: dev-only-root-token) |
+| SFTP | localhost:2222 |
 
-If the API refuses to start, check:
+**If the API refuses to start, check:**
 
-- Vault is reachable.
-- Vault contains required secrets.
-- Casbin policy table is seeded.
-- classifier model files exist.
-- SHA-256 in `model_card.json` matches `classifier.pt`.
-- `test_top1` is above the README threshold.
-
-## 2. Bootstrap First Admin User
-
-Temporary procedure to confirm during implementation.
-
-Expected options:
-
-### Option A: Bootstrap script
+- Vault is reachable and `vault-init` completed successfully.
+- `migrate` completed successfully.
+- `classifier.pt` exists and its SHA-256 matches `model_card.json`.
+- `test_top1` in `model_card.json` is ≥ 0.70.
+- Casbin policy table is not empty.
 
 ```bash
-docker compose exec api uv run python backend/scripts/create_admin.py --email admin@example.com
+docker compose logs vault-init
+docker compose logs migrate
+docker compose logs api
 ```
 
-### Option B: Public registration followed by role seed
+## 2. Bootstrap the First Admin User
 
-1. Register user through `/auth/register`.
-2. Run a seed script or migration that assigns the first admin role.
-3. Confirm `/me` returns role `admin`.
+Two scripts must be run in order after the first `docker compose up`.
 
-Final choice should be documented after auth implementation.
+**Step 1 — create the user in the database:**
+
+```bash
+docker compose exec api uv run python -m app.entrypoints.bootstrap_admin \
+  --email admin@example.com --password YourPassword123!
+```
+
+**Step 2 — assign the admin Casbin role:**
+
+```bash
+docker compose exec api uv run python -m app.entrypoints.bootstrap_admin_role \
+  --email admin@example.com
+```
+
+Both steps are required. Step 1 creates the user record. Step 2 assigns the Casbin grouping policy that gives the user admin permissions.
+
+**Verify:**
+
+```bash
+# Get a JWT token
+curl -s -X POST http://localhost:8000/auth/login \
+  -d "username=admin@example.com&password=YourPassword123!" | python -m json.tool
+
+# Check /me shows roles: ["admin"]
+TOKEN="<paste access_token here>"
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8000/me | python -m json.tool
+```
+
+On Windows PowerShell:
+
+```powershell
+$body = "username=admin@example.com&password=YourPassword123!"
+$resp = Invoke-RestMethod -Method Post -Uri http://localhost:8000/auth/login -Body $body -ContentType "application/x-www-form-urlencoded"
+$token = $resp.access_token
+Invoke-RestMethod -Uri http://localhost:8000/me -Headers @{ Authorization = "Bearer $token" }
+```
 
 ## 3. Drop a TIFF Through SFTP
 
-Temporary manual demo flow:
+Default SFTP credentials (dev only, sourced from Vault):
+
+- Host: `localhost`
+- Port: `2222`
+- Username: `sftp-user`
+- Password: `dev-sftp-password`
+
+**Drop a file:**
 
 ```bash
-scp -P 2222 sample.tif sftp-user@localhost:/upload/
+sftp -P 2222 sftp-user@localhost
+sftp> cd upload
+sftp> put sample-document.tiff
+sftp> bye
 ```
 
-Then verify:
+Or with scp:
 
-1. `sftp-ingest` logs file detected.
-2. Raw file appears in MinIO.
-3. Redis/RQ job is created.
-4. `worker` logs inference completed.
-5. Prediction row appears in Postgres.
-6. `GET /batches/{batch_id}` shows the prediction.
+```bash
+scp -P 2222 sample-document.tiff sftp-user@localhost:/upload/
+```
 
-## 4. Recover a Stuck Queue
+**Verify the pipeline:**
+
+```bash
+# 1. sftp-ingest picks up the file (within 5 seconds)
+docker compose logs sftp-ingest --tail 20
+
+# 2. Worker classifies it
+docker compose logs worker --tail 20
+
+# 3. Batch appears in the API
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8000/batches | python -m json.tool
+
+# 4. Check the frontend at http://localhost:3000/batches
+```
+
+## 4. Invite Additional Users
+
+Admin invite (requires an admin JWT token):
+
+```bash
+curl -s -X POST http://localhost:8000/admin/users/invite \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "reviewer@example.com", "temporary_password": "TempPass123!"}'
+```
+
+Then assign a role:
+
+```bash
+curl -s -X PUT \
+  http://localhost:8000/admin/users/<user_id>/roles/reviewer \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+## 5. Manage Roles
+
+**Assign a role:**
+
+```bash
+curl -s -X PUT \
+  http://localhost:8000/admin/users/<user_id>/roles/<role> \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Remove a role:**
+
+```bash
+curl -s -X DELETE \
+  http://localhost:8000/admin/users/<user_id>/roles/<role> \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Valid roles: `admin`, `reviewer`, `auditor`.
+
+The last admin cannot be demoted. The endpoint returns `409 Conflict` if you attempt it.
+
+Every role change writes an audit log entry visible at `GET /admin/audit-log`.
+
+## 6. Recover a Stuck Queue
 
 Use this when predictions are not appearing after files are dropped.
 
-Checklist:
-
-1. Check Redis is running.
-2. Check RQ worker logs.
-3. Check whether the job is queued, started, failed, or missing.
-4. Check MinIO object exists for the raw TIFF.
-5. Check classifier startup checks passed.
-6. Requeue failed jobs if the failure was transient.
-7. Move malformed files to quarantine if input is invalid.
-
-Commands to fill after RQ is implemented:
-
 ```bash
-docker compose logs worker
-docker compose logs redis
-docker compose exec worker uv run python backend/scripts/inspect_queue.py
+# Check logs
+docker compose logs worker --tail 50
+docker compose logs sftp-ingest --tail 50
+docker compose logs redis --tail 20
+
+# Confirm MinIO received the raw file
+docker compose exec minio mc ls local/documents-raw/
+
+# Confirm Redis queue has jobs
+docker compose exec redis redis-cli llen rq:queue:doc-jobs
 ```
 
-## 5. Replace the Classifier Model
+If jobs are stuck in a failed state, restart the worker:
 
-Procedure:
+```bash
+docker compose restart worker
+```
 
-1. Add the new `classifier.pt` through Git LFS.
-2. Generate a new `model_card.json`.
-3. Compute and store the correct SHA-256.
-4. Update full-test and golden-set metrics.
-5. Run the golden-set replay test.
-6. Restart `api` and `worker`.
-7. Confirm startup checks pass.
-8. Run a smoke test with one TIFF drop.
+If the SFTP file was malformed, it will appear as a `state: failed` batch in `GET /batches` with a `failure_reason`.
 
-Do not replace the model without updating `model_card.json`.
+## 7. Replace the Classifier Model
 
-## 6. Vault Failure Recovery
+1. Commit the new `classifier.pt` through Git LFS.
+2. Update `model_card.json` with the new SHA-256 and metrics.
+3. Run the golden-set replay test:
+   ```bash
+   docker compose exec worker uv run pytest backend/app/classifier/eval/golden.py -v
+   ```
+4. Restart `api` and `worker`:
+   ```bash
+   docker compose restart api worker
+   ```
+5. Confirm startup checks pass in logs.
+6. Drop one test TIFF and confirm a prediction appears.
 
-If API fails because Vault is unreachable:
+Do not replace `classifier.pt` without updating `model_card.json`. The SHA-256 mismatch will cause both services to refuse to start.
 
-1. Check Vault container logs.
-2. Confirm `VAULT_ADDR` and `VAULT_TOKEN` in `.env`.
-3. Confirm Vault dev server is initialized/unsealed as expected.
-4. Confirm expected KV paths exist.
-5. Restart API after Vault is healthy.
+## 8. Vault Failure Recovery
+
+If the API refuses to start because Vault is unreachable:
 
 ```bash
 docker compose logs vault
+docker compose logs vault-init
+```
+
+Check that `VAULT_ADDR` and `VAULT_TOKEN` in `.env` are correct, then restart:
+
+```bash
+docker compose restart vault vault-init
 docker compose restart api
 ```
 
-## 7. Casbin Policy Failure Recovery
+To inspect Vault secrets directly (dev mode):
 
-If API refuses to start because the Casbin policy table is empty:
+```bash
+docker compose exec vault vault kv get \
+  -address=http://127.0.0.1:8200 \
+  -token=dev-only-root-token \
+  secret/doc-classifier/jwt
+```
 
-1. Confirm migrations ran.
-2. Run the Casbin seed script or migration.
-3. Confirm policies exist in the database.
-4. Restart API.
+## 9. Cache Debugging
 
-Expected initial policy includes:
+If API reads appear stale after a write:
 
-- admin permissions
-- reviewer permissions
-- auditor permissions
-
-## 8. Cache Debugging
-
-If API reads show stale data:
-
-1. Confirm write operation went through the service layer.
-2. Check that service method invalidated the correct cache key.
-3. Check Redis connection.
+1. Confirm the write went through the service layer (not a direct repository call).
+2. Check that the service method called cache invalidation.
+3. Flush Redis and retry:
+   ```bash
+   docker compose exec redis redis-cli FLUSHDB
+   ```
 4. Compare DB row vs API response.
-5. Temporarily clear Redis cache and retest.
 
-Important rule: routers and repositories do not invalidate cache.
+Rule: cache invalidation lives only in `app/services/`. Routers and repositories never invalidate.
 
-## 9. Health Checks
+## 10. Health Check
 
-Planned health endpoints:
+```bash
+curl http://localhost:8000/healthz
+```
 
-| Endpoint | Purpose |
-|---|---|
-| `GET /healthz` | Basic API process health. |
-| `GET /readyz` | Readiness check for DB, Redis, Vault, and required startup dependencies. |
+Returns `200 OK` when the API process is running.
 
-Expected statuses:
+## 11. Demo Checklist
 
-- `200 OK`: service is healthy/ready.
-- `503 Service Unavailable`: dependency missing or not ready.
+Run through this before the Friday presentation:
 
-## 10. Demo Checklist
-
-Before Friday demo:
-
-- clean clone startup works
-- `docker compose up --build` works
-- SFTP TIFF becomes visible in API
-- admin role toggle works
-- reviewer relabel works only below confidence threshold
-- auditor cannot mutate anything
-- Vault failure causes API restart failure
-- broken model hash causes startup failure
-- golden-set test fails on deliberately changed expected output
-- structured logs include request IDs
+- [ ] `git lfs pull` confirms `classifier.pt` is present
+- [ ] `cp .env.example .env && docker compose up --build` completes cleanly
+- [ ] Bootstrap admin (both scripts) runs successfully
+- [ ] `/me` returns `roles: ["admin"]`
+- [ ] Frontend at http://localhost:3000 loads and login works
+- [ ] SFTP drop → batch appears in frontend within 10 seconds
+- [ ] Prediction shows correct label and confidence
+- [ ] Admin can toggle a user's role; `/me` for that user reflects the change
+- [ ] Reviewer can relabel a prediction with confidence < 0.70
+- [ ] Auditor cannot relabel (gets 403)
+- [ ] `docker compose stop vault && docker compose restart api` — API fails to start
+- [ ] Audit log shows role changes and relabels
+- [ ] `docker compose logs api` shows structured JSON with `request_id`

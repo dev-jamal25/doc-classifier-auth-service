@@ -1,7 +1,8 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import type { MockUser } from "../types";
+import { apiFetch, clearToken, setToken } from "./apiClient";
 
-const STORAGE_KEY = "doc-classifier.mockUser";
+const USER_KEY = "doc-classifier.user";
 
 type AuthContextValue = {
   user: MockUser | null;
@@ -13,16 +14,16 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const readStoredUser = (): MockUser | null => {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(USER_KEY);
     return raw ? (JSON.parse(raw) as MockUser) : null;
   } catch {
-    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(USER_KEY);
     return null;
   }
 };
 
 const writeStoredUser = (user: MockUser) => {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+  window.localStorage.setItem(USER_KEY, JSON.stringify(user));
 };
 
 export const getStoredMockUser = () => readStoredUser();
@@ -39,10 +40,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error("Email and password are required.");
         }
 
+        const formData = new URLSearchParams();
+        formData.set("username", trimmedEmail);
+        formData.set("password", password);
+
+        const loginRes = await fetch("/auth/login", {
+          method: "POST",
+          body: formData,
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        });
+
+        if (!loginRes.ok) {
+          throw new Error("Invalid credentials.");
+        }
+
+        const { access_token } = (await loginRes.json()) as { access_token: string };
+        setToken(access_token);
+
+        const meRes = await apiFetch("/me");
+        if (!meRes.ok) {
+          clearToken();
+          throw new Error("Unable to load user profile.");
+        }
+
+        const apiUser = (await meRes.json()) as { id: string; email: string; roles: string[] };
+
         const mockUser: MockUser = {
-          id: "mock-admin-user",
-          email: trimmedEmail,
-          roles: ["admin"],
+          id: apiUser.id,
+          email: apiUser.email,
+          roles: (apiUser.roles ?? []) as MockUser["roles"],
         };
 
         writeStoredUser(mockUser);
@@ -50,7 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return mockUser;
       },
       logout() {
-        window.localStorage.removeItem(STORAGE_KEY);
+        clearToken();
+        window.localStorage.removeItem(USER_KEY);
         setUser(null);
       },
     }),

@@ -17,7 +17,9 @@ api = [
   "fastapi",
   "fastapi-cache2>=0.2.2",
   "jinja2>=3.1.6",
+  "minio>=7.2.20",
   "redis>=7.4.0",
+  "rq>=2.8.0",
   "uvicorn[standard]",
 ]
 migrate = [

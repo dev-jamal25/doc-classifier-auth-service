@@ -10,6 +10,7 @@ class BatchState(StrEnum):
 
 class BatchSource(StrEnum):
     SFTP_INGEST = "sftp-ingest"
+    DEMO = "demo"
 
 
 class AuditAction(StrEnum):

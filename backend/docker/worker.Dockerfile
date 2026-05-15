@@ -10,5 +10,4 @@ RUN uv sync --frozen --no-dev --extra worker-ml --no-install-project
 COPY . .
 RUN uv sync --frozen --no-dev --extra worker-ml
 
-# TODO(infra): replace with a real worker entrypoint once app/entrypoints/worker.py exists.
-CMD ["sh", "-c", "echo 'ERROR: worker entrypoint not yet implemented' && exit 1"]
+CMD ["uv", "run", "python", "-m", "app.entrypoints.worker"]

@@ -8,12 +8,14 @@ from uuid import UUID
 
 from PIL import Image, ImageDraw, UnidentifiedImageError
 from redis import Redis
-from rq import Queue, Worker
+from rq import Queue, SimpleWorker
 
 from app.classifier.constants import CLASS_NAMES
 from app.classifier.model import ClassifierError, get_model, verify_artifacts
 from app.classifier.predict import InvalidImageError, predict_pil_image
 from app.core.config import get_settings
+from app.core.logging import configure_logging
+
 from app.core.lifespan import AppContext, lifespan
 from app.core.logging import configure_logging, request_id_var
 from app.domain.enums import BatchState
@@ -339,7 +341,7 @@ def run_worker(context: AppContext) -> None:
     settings = context.settings
     redis_conn = Redis.from_url(context.secrets.redis.url)
     queue = Queue(settings.worker_queue_name, connection=redis_conn)
-    worker = Worker([queue], connection=redis_conn)
+    worker = SimpleWorker([queue], connection=redis_conn)
 
     logger.info(
         "Worker started.",
@@ -360,10 +362,13 @@ def run_worker(context: AppContext) -> None:
         )
 
 
-async def main() -> None:
-    async with lifespan("worker") as context:
-        run_worker(context)
+def main() -> None:
+    settings = get_settings()
+    configure_logging(settings, service="worker")
+    secrets = load_secrets(settings)
+    context = AppContext(settings=settings, secrets=secrets)
+    run_worker(context)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

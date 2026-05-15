@@ -67,7 +67,7 @@ services:
       vault:
         condition: service_healthy
     environment:
-      JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-do-not-use-in-prod}
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: ${VAULT_TOKEN:-dev-only-root-token}
       POSTGRES_USER: ${POSTGRES_USER:-doc_user}

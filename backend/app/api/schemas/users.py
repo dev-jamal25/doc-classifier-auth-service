@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi_users import schemas
-from pydantic import ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class UserRead(schemas.BaseUser[UUID]):
@@ -14,3 +14,8 @@ class UserRead(schemas.BaseUser[UUID]):
 
 class UserCreate(schemas.BaseUserCreate):
     pass
+
+
+class AdminUserInviteRequest(BaseModel):
+    email: str
+    temporary_password: str = Field(min_length=8)

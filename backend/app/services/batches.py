@@ -60,14 +60,24 @@ class BatchService:
         offset: int = 0,
         state: BatchState | None = None,
     ) -> list[Batch]:
-        # TODO(cache): cache GET /batches with TTL 60s via fastapi-cache2.
         return await self._batch_repository.list(limit=limit, offset=offset, state=state)
 
     async def get_batch(self, batch_id: UUID) -> Batch | None:
-        # TODO(cache): cache GET /batches/{batch_id} with TTL 60s via fastapi-cache2.
         return await self._batch_repository.get(batch_id)
 
-    async def change_state(self, *, batch_id: UUID, new_state: BatchState) -> Batch:
-        # TODO(cache): invalidate GET /batches and GET /batches/{batch_id}.
+    async def change_state(
+        self,
+        *,
+        batch_id: UUID,
+        new_state: BatchState,
+        failure_reason: str | None = None,
+    ) -> Batch:
         # TODO(audit): write batch_state_change audit entry.
-        return await self._batch_repository.update_state(batch_id=batch_id, new_state=new_state)
+        updated = await self._batch_repository.update_state(
+            batch_id=batch_id,
+            new_state=new_state,
+            failure_reason=failure_reason,
+        )
+        await self._cache_invalidator.invalidate_batches_list()
+        await self._cache_invalidator.invalidate_batch_detail(batch_id)
+        return updated

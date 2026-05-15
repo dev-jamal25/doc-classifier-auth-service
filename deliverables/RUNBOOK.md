@@ -5,6 +5,15 @@ Last updated: 2026-05-14
 
 ## 1. Local Startup
 
+**First-time setup**: this repository uses Git LFS for `classifier.pt`. Before the first build, run:
+
+```bash
+git lfs install
+git lfs pull
+```
+
+If you skip this, the worker container will refuse to start with a SHA-256 mismatch.
+
 Primary startup path (from a fresh clone):
 
 ```bash
@@ -17,15 +26,8 @@ Expected behavior:
 1. Vault, Postgres, Redis, MinIO, and SFTP start.
 2. `migrate` runs Alembic migrations and exits successfully.
 3. `api` starts after startup checks pass.
-4. `sftp-ingest` starts polling the SFTP drop folder.
-5. `worker` is excluded by default behind a Compose profile until its real entrypoint lands.
-
-Worker profile note:
-
-- Start default stack without worker:
-  - `docker compose up --build`
-- Include worker explicitly (Phase 5 profile):
-  - `docker compose --profile phase5-worker up --build`
+4. `worker` starts after dependencies are healthy and begins listening on `doc-jobs`.
+5. `sftp-ingest` starts polling the SFTP drop folder.
 
 Environment note:
 

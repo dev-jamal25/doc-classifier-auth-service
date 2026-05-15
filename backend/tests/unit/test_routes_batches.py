@@ -13,6 +13,7 @@ from app.db.models import User
 from app.domain.batches import Batch
 from app.domain.enums import BatchSource, BatchState
 from app.infra.vault import JwtSecrets
+from tests.unit.cache_helpers import init_test_cache
 from tests.unit.fakes import FakeBatchService
 
 JWT_SECRETS = JwtSecrets(secret="route-test-secret" * 3, algorithm="HS256", exp_minutes=30)
@@ -67,6 +68,7 @@ def _batches_app(
     authenticate: bool = True,
     rbac_service: _FakeRBACService | None = None,
 ) -> FastAPI:
+    init_test_cache()
     app = FastAPI()
     app.include_router(batches_router)
     app.dependency_overrides[get_batch_service] = lambda: fake_service
@@ -147,6 +149,22 @@ async def test_list_batches_passes_query_params_to_service() -> None:
 
 
 @pytest.mark.asyncio
+async def test_list_batches_uses_response_cache_on_second_read() -> None:
+    first = _sample_batch()
+    fake = FakeBatchService(batches=[first])
+    transport = ASGITransport(app=_batches_app(fake))
+
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        first_response = await client.get("/batches")
+        second_response = await client.get("/batches")
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 200
+    assert first_response.json() == second_response.json()
+    assert fake.calls == [{"method": "list_batches", "limit": 50, "offset": 0, "state": None}]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("limit", [0, 999])
 async def test_list_batches_rejects_invalid_limit(limit: int) -> None:
     fake = FakeBatchService()
@@ -169,6 +187,22 @@ async def test_get_batch_returns_item_when_found() -> None:
 
     assert response.status_code == 200
     assert response.json()["id"] == str(batch.id)
+    assert fake.calls == [{"method": "get_batch", "batch_id": batch.id}]
+
+
+@pytest.mark.asyncio
+async def test_get_batch_uses_response_cache_on_second_read() -> None:
+    batch = _sample_batch()
+    fake = FakeBatchService(batch_by_id={batch.id: batch})
+    transport = ASGITransport(app=_batches_app(fake))
+
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        first_response = await client.get(f"/batches/{batch.id}")
+        second_response = await client.get(f"/batches/{batch.id}")
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 200
+    assert first_response.json() == second_response.json()
     assert fake.calls == [{"method": "get_batch", "batch_id": batch.id}]
 
 

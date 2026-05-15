@@ -1,7 +1,9 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi_users.exceptions import UserAlreadyExists
 
+from app.api.auth.manager import UserManager, get_user_manager
 from app.api.deps import (
     get_audit_log_service,
     get_rbac_service,
@@ -10,6 +12,7 @@ from app.api.deps import (
 )
 from app.api.schemas.audit_log import AuditLogListResponse
 from app.api.schemas.rbac import UserRolesResponse
+from app.api.schemas.users import AdminUserInviteRequest, UserCreate, UserRead
 from app.db.models import User
 from app.domain.errors import LastAdminRoleRemovalError, UserNotFoundError
 from app.domain.rbac import Role
@@ -18,6 +21,7 @@ from app.services.rbac import RBACService
 
 audit_log_service_dependency = Depends(get_audit_log_service)
 rbac_service_dependency = Depends(get_rbac_service)
+user_manager_dependency = Depends(get_user_manager)
 audit_read_dependency = Depends(require_permission("audit", "read"))
 manage_roles_dependency = Depends(require_permission("users", "manage_roles"))
 audit_limit_query = Query(100, ge=1, le=200)
@@ -35,6 +39,29 @@ async def list_audit_log(
 ) -> AuditLogListResponse:
     entries = await service.list_entries(limit=limit, offset=offset)
     return AuditLogListResponse.from_domain_list(entries)
+
+
+@router.post("/users/invite", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+async def invite_user(
+    payload: AdminUserInviteRequest,
+    _actor: User = manage_roles_dependency,
+    user_manager: UserManager = user_manager_dependency,
+) -> UserRead:
+    user_create = UserCreate(
+        email=payload.email,
+        password=payload.temporary_password,
+        is_active=True,
+        is_superuser=False,
+        is_verified=False,
+    )
+    try:
+        user = await user_manager.create(user_create, safe=False)
+    except UserAlreadyExists as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="User already exists",
+        ) from exc
+    return UserRead.model_validate(user)
 
 
 @router.put("/users/{user_id}/roles/{role}", response_model=UserRolesResponse)

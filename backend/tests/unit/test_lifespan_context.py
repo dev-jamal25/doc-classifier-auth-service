@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from app.core import lifespan as lifespan_module
 from app.core.config import Settings
 from app.core.lifespan import AppContext, build_fastapi_lifespan
+from app.infra import cache as cache_module
 from app.infra import vault as vault_module
 from app.infra.vault import VaultStartupError
 
@@ -55,6 +56,15 @@ class _FakeHvac:
         return self._client
 
 
+class _FakeCacheClient:
+    async def aclose(self) -> None:
+        return None
+
+
+async def _fake_initialize_api_cache(redis_url: str) -> _FakeCacheClient:
+    return _FakeCacheClient()
+
+
 def _settings() -> Settings:
     return Settings(
         vault_addr="http://vault:8200",
@@ -96,6 +106,7 @@ async def test_fastapi_lifespan_stashes_app_context(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr(lifespan_module, "get_settings", _settings)
     monkeypatch.setattr(vault_module, "hvac", _FakeHvac(_FakeClient(_valid_store())))
     monkeypatch.setattr(lifespan_module, "validate_api_startup", _noop_validate_api_startup)
+    monkeypatch.setattr(cache_module, "initialize_api_cache", _fake_initialize_api_cache)
     app = FastAPI()
 
     async with build_fastapi_lifespan("api")(app):
@@ -114,6 +125,7 @@ async def test_api_lifespan_runs_rbac_startup_guard(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr(lifespan_module, "get_settings", _settings)
     monkeypatch.setattr(vault_module, "hvac", _FakeHvac(_FakeClient(_valid_store())))
     monkeypatch.setattr(lifespan_module, "validate_api_startup", _fake_validate_api_startup)
+    monkeypatch.setattr(cache_module, "initialize_api_cache", _fake_initialize_api_cache)
     app = FastAPI()
 
     async with build_fastapi_lifespan("api")(app):

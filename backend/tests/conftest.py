@@ -1,4 +1,6 @@
 import pytest
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
 
 from app.core.config import get_settings
 
@@ -41,3 +43,12 @@ def clear_settings_cache() -> None:
 def clear_settings_env(monkeypatch: pytest.MonkeyPatch) -> None:
     for env_key in SETTINGS_ENV_KEYS:
         monkeypatch.delenv(env_key, raising=False)
+
+
+@pytest.fixture(autouse=True)
+def reset_fastapi_cache() -> None:
+    FastAPICache.reset()
+    InMemoryBackend._store.clear()
+    yield
+    FastAPICache.reset()
+    InMemoryBackend._store.clear()

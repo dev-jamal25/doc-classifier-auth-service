@@ -1,14 +1,38 @@
 from uuid import uuid4
 
+from sqlalchemy import Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
 
-from app.db.models import AuditLog, Batch, Prediction
+from app.db.models import AuditLog, Batch, CasbinRule, Prediction
 
 
 def test_model_tablenames() -> None:
     assert Batch.__tablename__ == "batches"
     assert Prediction.__tablename__ == "predictions"
     assert AuditLog.__tablename__ == "audit_log"
+    assert CasbinRule.__tablename__ == "casbin_rule"
+
+
+def test_casbin_rule_matches_adapter_shape() -> None:
+    assert isinstance(CasbinRule.__table__.c.id.type, Integer)
+    assert CasbinRule.__table__.c.id.primary_key is True
+    for column_name in ("ptype", "v0", "v1", "v2", "v3", "v4", "v5"):
+        column = CasbinRule.__table__.c[column_name]
+        assert isinstance(column.type, String)
+        assert column.type.length == 255
+
+
+def test_casbin_rule_serializes_policy_like_adapter() -> None:
+    row = CasbinRule(ptype="p", v0="admin", v1="batches", v2="read")
+
+    assert str(row) == "p, admin, batches, read"
+
+
+def test_casbin_rule_serializes_grouping_policy_like_adapter() -> None:
+    user_id = uuid4()
+    row = CasbinRule(ptype="g", v0=str(user_id), v1="admin")
+
+    assert str(row) == f"g, {user_id}, admin"
 
 
 def test_user_reference_columns_are_nullable_without_foreign_keys() -> None:

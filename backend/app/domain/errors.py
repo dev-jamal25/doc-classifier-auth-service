@@ -12,3 +12,13 @@ class BatchAlreadyCompletedError(Exception):
             f"Batch `{batch_id}` is already completed "
             "but no prediction exists for idempotent replay."
         )
+
+
+class UserNotFoundError(Exception):
+    def __init__(self, user_id: UUID) -> None:
+        super().__init__(f"User `{user_id}` not found.")
+
+
+class LastAdminRoleRemovalError(Exception):
+    def __init__(self, user_id: UUID) -> None:
+        super().__init__(f"Cannot remove the last admin role from user `{user_id}`.")

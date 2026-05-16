@@ -180,11 +180,18 @@ async def mark_batch_failed(
     engine, session_factory = _build_worker_session_factory(context.secrets.db.database_url)
     try:
         async with session_factory() as session:
-            batch_service = BatchService(BatchRepository(session), cache_invalidator)
+            batch_repository = BatchRepository(session)
+            audit_log_service = AuditLogService(AuditLogRepository(session))
+            batch_service = BatchService(
+                batch_repository,
+                cache_invalidator,
+                audit_log_service=audit_log_service,
+            )
             async with session.begin():
                 await batch_service.change_state(
                     batch_id=batch_id,
                     new_state=BatchState.FAILED,
+                    request_id=request_id,
                     failure_reason=failure_reason,
                 )
     finally:

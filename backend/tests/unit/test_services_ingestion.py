@@ -215,9 +215,11 @@ async def test_change_state_updates_batch_and_invalidates_list_and_detail() -> N
     cache = _SpyInvalidator()
     service = BatchService(repo, cache)
 
+    request_id = uuid4()
     result = await service.change_state(
         batch_id=batch_id,
         new_state=BatchState.FAILED,
+        request_id=request_id,
         failure_reason="worker_invalid_image",
     )
 
@@ -226,6 +228,49 @@ async def test_change_state_updates_batch_and_invalidates_list_and_detail() -> N
         batch_id=batch_id,
         new_state=BatchState.FAILED,
         failure_reason="worker_invalid_image",
+    )
+    assert cache.batches_list_calls == 1
+    assert cache.batch_detail_calls == [batch_id]
+
+
+@pytest.mark.asyncio
+async def test_change_state_writes_batch_state_audit_when_configured() -> None:
+    batch_id = uuid4()
+    request_id = uuid4()
+    before_batch = _sample_batch(state=BatchState.PENDING, batch_id=batch_id)
+    updated_batch = _sample_batch(state=BatchState.FAILED, batch_id=batch_id).model_copy(
+        update={"failure_reason": "worker_invalid_image"}
+    )
+    repo = SimpleNamespace(
+        get=AsyncMock(return_value=before_batch),
+        update_state=AsyncMock(return_value=updated_batch),
+    )
+    audit_service = SimpleNamespace(write_entry=AsyncMock())
+    cache = _SpyInvalidator()
+    service = BatchService(repo, cache, audit_log_service=audit_service)
+
+    result = await service.change_state(
+        batch_id=batch_id,
+        new_state=BatchState.FAILED,
+        request_id=request_id,
+        failure_reason="worker_invalid_image",
+    )
+
+    assert result.id == batch_id
+    repo.get.assert_awaited_once_with(batch_id)
+    repo.update_state.assert_awaited_once_with(
+        batch_id=batch_id,
+        new_state=BatchState.FAILED,
+        failure_reason="worker_invalid_image",
+    )
+    audit_service.write_entry.assert_awaited_once_with(
+        action=AuditAction.BATCH_STATE_CHANGE,
+        actor_user_id=None,
+        target_type="batch",
+        target_id=batch_id,
+        before={"state": "pending", "failure_reason": None},
+        after={"state": "failed", "failure_reason": "worker_invalid_image"},
+        request_id=request_id,
     )
     assert cache.batches_list_calls == 1
     assert cache.batch_detail_calls == [batch_id]

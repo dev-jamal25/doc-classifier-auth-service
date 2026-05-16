@@ -39,6 +39,27 @@ class BatchService:
         await self._cache_invalidator.invalidate_batches_list()
         return created
 
+    async def create_from_demo_upload(
+        self,
+        *,
+        blob_key: str,
+        source_filename: str,
+        user_id: UUID,
+        request_id: UUID,
+    ) -> Batch:
+        created = await self._batch_repository.create(
+            source_filename=source_filename,
+            source=BatchSource.DEMO,
+            sftp_user=None,
+            blob_key=blob_key,
+            state=BatchState.PENDING,
+            failure_reason=None,
+            request_id=request_id,
+            created_by_user_id=user_id,
+        )
+        await self._cache_invalidator.invalidate_batches_list()
+        return created
+
     async def create_failed_batch(
         self,
         *,

@@ -1,142 +1,141 @@
 # SECURITY.md
 
-Status: Temporary baseline for team review
-Last updated: 2026-05-12
+Last updated: 2026-05-15
 
 ## 1. Security Goals
 
-This project is an internal authenticated document classification service. The main security goals for the Week 6 version are:
+This is an internal authenticated document classification service. The security model for the Week 6 version targets:
 
 - no secrets committed to Git
-- secrets resolved from Vault at startup
+- all runtime secrets resolved from Vault at startup
 - JWT-based authentication
 - Casbin role-based authorization
-- audit logging for sensitive actions
-- clear refusal to start when required security dependencies are missing
+- audit logging for every sensitive action
+- hard refusal to start when required security dependencies are missing
 
 ## 2. Secret Handling
 
-Secrets are not hardcoded in application code.
+Secrets are never hardcoded in application code.
 
-Local `.env` should contain only bootstrap values needed to reach Vault and local port configuration.
-
-Example bootstrap values:
+`.env` contains only bootstrap values needed to reach Vault and configure local ports. It never contains application secrets.
 
 ```env
 VAULT_ADDR=http://vault:8200
 VAULT_TOKEN=dev-only-root-token
 API_PORT=8000
-POSTGRES_PORT=5432
-REDIS_PORT=6379
-MINIO_PORT=9000
-SFTP_PORT=2222
+FRONTEND_PORT=3000
 ```
 
-All application secrets should be read from Vault at startup.
+All application secrets are resolved from Vault at startup via `load_secrets()`.
 
-## 3. Temporary Vault KV v2 Layout
-
-Proposed paths:
-
-```text
-secret/data/doc-classifier/jwt
-secret/data/doc-classifier/db
-secret/data/doc-classifier/minio
-secret/data/doc-classifier/sftp
-secret/data/doc-classifier/redis
-```
-
-Proposed secret groups:
-
-| Path | Contains |
-|---|---|
-| `secret/data/doc-classifier/jwt` | JWT signing secret, token lifetime settings. |
-| `secret/data/doc-classifier/db` | Postgres username, application database name, connection password/URL. |
-| `secret/data/doc-classifier/minio` | MinIO access key and secret key. |
-| `secret/data/doc-classifier/sftp` | SFTP username and credential used by the local dev SFTP container. |
-| `secret/data/doc-classifier/redis` | Redis connection information if needed. |
-
-Final paths may change after implementation.
-
-## 4. Authentication
-
-Authentication will use `fastapi-users` with JWT.
-
-Rules:
-
-- JWT signing key resolves from Vault at startup.
-- JWT payload must not contain sensitive information.
-- Protected routes require a valid bearer token.
-- Missing or invalid token returns `401 Unauthorized`.
-- Authenticated user without permission returns `403 Forbidden`.
-
-## 5. Authorization
-
-Authorization uses Casbin RBAC.
-
-Roles:
-
-| Role | Permission Summary |
-|---|---|
-| `admin` | Invite users, toggle roles, view audit log. |
-| `reviewer` | View batches and relabel low-confidence predictions. |
-| `auditor` | Read-only access to batches and audit log. |
-
-Role changes must:
-
-1. verify the actor is an admin
-2. update the target user role/policy
-3. write an audit log row
-4. invalidate affected caches
-
-## 6. Audit Log Scope
-
-The audit log records:
-
-- actor
-- action
-- target type
-- target ID
-- before value
-- after value
-- timestamp
-- request ID
-
-Actions to audit:
-
-- every role change
-- every relabel
-- every batch state change
-
-## 7. Startup Security Checks
-
-The API refuses to start if:
-
-- Vault is unreachable
-- required Vault secrets are missing
-- Casbin policy table is empty
-- classifier artifact integrity checks fail
-
-The worker refuses to start if classifier artifact integrity checks fail.
-
-## 8. Secrets Search Rule
-
-The project should pass this check before demo:
+**Verify no passwords in application code:**
 
 ```bash
 grep -ri 'password' backend/app/
 ```
 
-Expected result: no matches outside the Vault-reading code or safe field names that are required by libraries.
+Expected: matches only in Vault-reading adapters (`infra/vault.py`, `infra/sftp.py`) and in library-required field names (`schemas/users.py`). No hardcoded credentials.
+
+## 3. Vault KV v2 Layout
+
+Secrets are stored under `secret/data/doc-classifier/` in Vault KV v2.
+
+| Path | Contains |
+|---|---|
+| `secret/data/doc-classifier/jwt` | JWT signing secret, algorithm, token lifetime |
+| `secret/data/doc-classifier/db` | Postgres database URL |
+| `secret/data/doc-classifier/minio` | MinIO access key and secret key |
+| `secret/data/doc-classifier/sftp` | SFTP username and password |
+| `secret/data/doc-classifier/redis` | Redis connection URL |
+
+These paths are seeded by `vault-init` at compose startup using the dev-only defaults from docker-compose environment variables.
+
+## 4. Authentication
+
+Authentication uses `fastapi-users` with JWT (Bearer transport).
+
+Rules:
+- JWT signing key resolves from Vault at startup.
+- JWT payload does not contain sensitive information.
+- Every protected route requires a valid Bearer token.
+- Missing or invalid token → `401 Unauthorized`.
+- Authenticated user without the required permission → `403 Forbidden`.
+- Registration is admin-invite-only. There is no public `/auth/register` route.
+
+## 5. Authorization
+
+Authorization uses Casbin RBAC. Roles are stored in the Casbin grouping policy table only — not as a column on the user table.
+
+| Role | Permissions |
+|---|---|
+| `admin` | Invite users, toggle roles, view audit log, view batches |
+| `reviewer` | View batches, relabel low-confidence predictions (top-1 < 0.70) |
+| `auditor` | Read-only access to batches and audit log |
+
+Role change flow:
+1. Admin calls `PUT /admin/users/{user_id}/roles/{role}`.
+2. Service layer verifies the actor is admin.
+3. Service layer checks the last-admin guard (409 if only one admin remains).
+4. Casbin grouping policy is updated.
+5. Audit log entry is written.
+6. Affected user's `/me` cache is invalidated.
+7. Target user sees updated permissions on next page load — no logout required.
+
+## 6. Audit Log
+
+Every sensitive action writes an audit log row.
+
+Audited actions:
+- `role_change` — every assignment or removal of a role
+- `relabel` — every reviewer relabel of a prediction
+- `batch_state_change` — every batch state transition
+
+Audit log fields: actor user ID, action, target type, target ID, before value, after value, request ID, timestamp.
+
+The audit log is append-only. Entries are never deleted or updated by the application.
+
+## 7. Startup Security Checks
+
+**API refuses to start if:**
+- Vault is unreachable
+- Required Vault KV paths are missing or empty
+- Casbin policy table is empty
+- `classifier.pt` is missing
+- `classifier.pt` SHA-256 does not match `model_card.json`
+- `model_card.json` `test_top1` is below 0.70
+
+**Worker refuses to start if:**
+- `classifier.pt` is missing
+- SHA-256 mismatch
+- `test_top1` below threshold
+
+**To demonstrate this during the demo:**
+
+```bash
+# Stop Vault, then try to restart the API
+docker compose stop vault
+docker compose restart api
+docker compose logs api  # should show Vault unreachable error and exit
+```
+
+## 8. Request ID Traceability
+
+Every API request is tagged with a `request_id` (UUID v4) from the `X-Request-ID` header or generated at the middleware layer. SFTP-originated jobs generate their own request IDs in `sftp-ingest`.
+
+The request ID propagates through:
+- structured JSON logs in api, worker, sftp-ingest
+- queue payload
+- `batches.request_id`
+- `predictions.request_id`
+- `audit_log.request_id`
 
 ## 9. Out of Scope for Week 6
 
-These are important in production but not targeted for the current bootcamp scope unless time allows:
+The following are important in production but not targeted in this version:
 
-- public cloud deployment hardening
-- IP allowlisting
-- rate limiting
-- full refresh-token rotation
-- audit log retention policy
-- production Vault configuration
-- multi-tenant organization support
+- IP allowlisting / rate limiting
+- Refresh token rotation
+- Audit log retention policy
+- Production Vault hardening (TLS, unsealing, token scoping)
+- Multi-tenant support
+- Public cloud deployment security

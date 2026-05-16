@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, FolderInput } from "lucide-react";
@@ -8,22 +9,54 @@ import { BatchDetailSummary } from "../components/batches/BatchDetailSummary";
 import { BatchPredictionDetail } from "../components/batches/BatchPredictionDetail";
 import { Card } from "../components/ui/Card";
 import { useAuth } from "../lib/auth";
+import {
+  API_ENDPOINTS,
+  type ApiBatch,
+  type ApiPrediction,
+  mapBatch,
+  mapPrediction,
+} from "../lib/api";
+import { apiGet } from "../lib/apiClient";
 import { mockAuditLog, mockBatches, mockPredictions } from "../lib/mockData";
+import type { AuditLogEntry, Batch, Prediction } from "../types";
 
 export function BatchDetailPage() {
   const { batchId } = useParams();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [batch, setBatch] = useState<Batch | undefined>(() =>
+    mockBatches.find((item) => item.id === batchId),
+  );
+  const [predictions, setPredictions] = useState<Prediction[]>(
+    mockPredictions.filter((p) => p.batchId === batchId),
+  );
+  const [auditLog] = useState<AuditLogEntry[]>(mockAuditLog);
+
+  useEffect(() => {
+    if (!batchId) return;
+    apiGet<ApiBatch>(API_ENDPOINTS.batchDetail(batchId))
+      .then((raw) => setBatch(mapBatch(raw)))
+      .catch(() => {});
+  }, [batchId]);
+
+  useEffect(() => {
+    apiGet<{ items: ApiPrediction[] }>(API_ENDPOINTS.recentPredictions)
+      .then((data) => {
+        const mapped = data.items.map(mapPrediction).filter((p) => p.batchId === batchId);
+        if (mapped.length > 0) {
+          setPredictions(mapped);
+        }
+      })
+      .catch(() => {});
+  }, [batchId]);
 
   if (!user) {
     return null;
   }
 
   const activeRole = user.roles[0] ?? "admin";
-  const batch = mockBatches.find((item) => item.id === batchId);
-  const predictions = mockPredictions.filter((prediction) => prediction.batchId === batchId);
-  const predictionIds = new Set(predictions.map((prediction) => prediction.id));
-  const history = mockAuditLog.filter(
+  const predictionIds = new Set(predictions.map((p) => p.id));
+  const history = auditLog.filter(
     (entry) => entry.targetId === batchId || predictionIds.has(entry.targetId),
   );
 
@@ -64,12 +97,12 @@ export function BatchDetailPage() {
         ) : (
           <Card
             className="lg:col-span-12"
-            eyebrow="Missing mock record"
+            eyebrow="Not found"
             icon={<FolderInput className="h-5 w-5" aria-hidden="true" />}
             title="No batch found"
           >
             <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
-              The mock dataset does not include a batch with ID `{batchId}`.
+              No batch with ID `{batchId}` was found.
             </p>
           </Card>
         )}

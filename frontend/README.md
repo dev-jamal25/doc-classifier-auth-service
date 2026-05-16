@@ -1,10 +1,10 @@
-Frontend service for the authenticated document-classifier console.
+# Frontend Console
+
+React/TypeScript/Vite console for the document classifier service.
 
 ## Stack
 
-- Vite
-- React
-- TypeScript
+- Vite 5 + React 18 + TypeScript
 - Tailwind CSS
 - react-router-dom
 - lucide-react
@@ -12,28 +12,46 @@ Frontend service for the authenticated document-classifier console.
 
 ## Local Development
 
+Requires the backend stack running (`docker compose up` from the repo root).
+
 ```bash
 npm install
 npm run dev
 ```
 
-If Nodist crashes or cannot resolve Node on Windows, run this once in the
-current PowerShell session before npm commands:
+Opens at http://localhost:5173. Vite proxies `/auth`, `/me`, `/batches`, `/predictions`, `/admin` to the API at `localhost:8000` — no CORS setup needed.
+
+**Windows / Nodist note:** if npm fails to resolve Node, run once in the current PowerShell session:
 
 ```powershell
 $env:NODIST_X64 = "0"
 npm install
-npm run build
+npm run dev
 ```
 
-This machine currently has Node `20.10.0` installed under Nodist's non-x64
-store, while `NODIST_X64=1` makes Nodist look in an empty x64 store.
+## Production (Docker)
 
-The UI is currently mock-only. Login accepts any non-empty email and password,
-stores a local mock admin user, and protects `/dashboard` with that mock session.
-
-## Build
+The full stack including the frontend runs with:
 
 ```bash
-npm run build
+docker compose up --build
 ```
+
+Frontend at http://localhost:3000. nginx proxies API paths to the `api` service internally.
+
+## Pages
+
+| Route | Description |
+|---|---|
+| `/login` | JWT login — calls the real `/auth/login` API |
+| `/dashboard` | Batch queue, prediction review panel, audit timeline, role summary |
+| `/batches` | Live batch list from `/batches` |
+| `/batches/:id` | Batch detail with predictions |
+| `/predictions/review` | Low-confidence prediction queue (< 0.70) |
+| `/demo-ingestion` | SFTP ingestion walkthrough for the demo |
+
+## API Integration
+
+Login calls `POST /auth/login` (form-encoded), stores the JWT, and fetches `/me` for user profile and roles. All subsequent requests attach `Authorization: Bearer <token>`.
+
+Every page starts with curated mock data for instant render, then replaces it with real API data once the fetch resolves. If the API is unreachable the page remains functional with the mock data.

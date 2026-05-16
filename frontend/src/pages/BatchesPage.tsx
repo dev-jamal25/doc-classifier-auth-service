@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FolderInput, RadioTower, ServerCog } from "lucide-react";
@@ -7,18 +8,35 @@ import { BatchList } from "../components/batches/BatchList";
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { useAuth } from "../lib/auth";
+import { API_ENDPOINTS, type ApiBatch, type ApiPrediction, mapBatch, mapPrediction } from "../lib/api";
+import { apiGet } from "../lib/apiClient";
 import { mockBatches, mockPredictions } from "../lib/mockData";
+import type { Batch, Prediction } from "../types";
 
 export function BatchesPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [batches, setBatches] = useState<Batch[]>(mockBatches);
+  const [predictions, setPredictions] = useState<Prediction[]>(mockPredictions);
+
+  useEffect(() => {
+    apiGet<{ items: ApiBatch[] }>(API_ENDPOINTS.batches)
+      .then((data) => setBatches(data.items.map(mapBatch)))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    apiGet<{ items: ApiPrediction[] }>(API_ENDPOINTS.recentPredictions)
+      .then((data) => setPredictions(data.items.map(mapPrediction)))
+      .catch(() => {});
+  }, []);
 
   if (!user) {
     return null;
   }
 
   const activeRole = user.roles[0] ?? "admin";
-  const activeBatches = mockBatches.filter((batch) => batch.state === "pending" || batch.state === "processing");
+  const activeBatches = batches.filter((batch) => batch.state === "pending" || batch.state === "processing");
 
   const handleLogout = () => {
     logout();
@@ -71,7 +89,7 @@ export function BatchesPage() {
           </Card>
         </Card>
 
-        <BatchList batches={mockBatches} className="lg:col-span-8" predictions={mockPredictions} />
+        <BatchList batches={batches} className="lg:col-span-8" predictions={predictions} />
 
         <Card
           className="lg:col-span-12"
@@ -83,7 +101,7 @@ export function BatchesPage() {
             {["pending", "processing", "completed", "failed"].map((state) => (
               <Card as="div" className="p-4" key={state} variant="subtle">
                 <p className="text-2xl font-bold text-slate-950 dark:text-white">
-                  {mockBatches.filter((batch) => batch.state === state).length}
+                  {batches.filter((batch) => batch.state === state).length}
                 </p>
                 <p className="mt-1 text-sm font-semibold capitalize text-slate-500 dark:text-slate-400">{state}</p>
               </Card>

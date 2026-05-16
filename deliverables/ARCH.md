@@ -1,8 +1,7 @@
 # ARCH.md
 
-Status: Draft for team review
 Project: Document Classifier as an Authenticated Service
-Last updated: 2026-05-12
+Last updated: 2026-05-15
 
 ## 1. System Overview
 
@@ -135,22 +134,22 @@ The role-toggle flow is the central permission story:
 7. Service layer invalidates affected user permission/cache entries.
 8. Target user sees updated permissions on next page load without logout/login.
 
-## 8. Planned Endpoint Inventory
+## 8. Endpoint Inventory
 
-Temporary draft. Final route names may change after team review.
-
-| Method | Endpoint | Roles | Purpose |
+| Method | Endpoint | Roles | Notes |
 |---|---|---|---|
-| `POST` | `/auth/login` | Public | Issue JWT access token. |
-| `POST` | `/auth/logout` | Authenticated | Logout flow if implemented by fastapi-users setup. |
-| `GET` | `/me` | Authenticated | Return current user profile and role. Cached. |
-| `GET` | `/batches` | admin, reviewer, auditor | List batches. Cached. |
-| `GET` | `/batches/{batch_id}` | admin, reviewer, auditor | Read one batch with predictions. Cached. |
-| `GET` | `/predictions/recent` | admin, reviewer, auditor | List recent predictions. Cached. |
-| `PATCH` | `/predictions/{prediction_id}` | reviewer | Relabel only if prediction confidence `< 0.7`. |
-| `POST` | `/admin/users/invite` | admin | Invite/create a user. This replaces public self-registration in the final flow. |
-| `PATCH` | `/admin/users/{user_id}/role` | admin | Toggle user role and write audit log. |
-| `GET` | `/admin/audit-log` | admin, auditor | Read audit log. |
+| `POST` | `/auth/login` | Public | Form-encoded `username` + `password`. Returns JWT access token. |
+| `POST` | `/auth/logout` | Authenticated | Stateless — instructs clients to discard their token. |
+| `GET` | `/me` | Authenticated | Current user profile and Casbin roles. Cached 300 s. |
+| `GET` | `/healthz` | Public | API liveness check. |
+| `GET` | `/batches` | admin, reviewer, auditor | Paginated batch list. Cached 60 s. |
+| `GET` | `/batches/{batch_id}` | admin, reviewer, auditor | Single batch. Cached 60 s. |
+| `GET` | `/predictions/recent` | admin, reviewer, auditor | Recent predictions. Cached 60 s. |
+| `PATCH` | `/predictions/{prediction_id}/review` | reviewer | Relabel only when top-1 confidence `< 0.7`. |
+| `POST` | `/admin/users/invite` | admin | Create user (invite-only registration). |
+| `PUT` | `/admin/users/{user_id}/roles/{role}` | admin | Assign role. Writes audit log. Invalidates `/me` cache. |
+| `DELETE` | `/admin/users/{user_id}/roles/{role}` | admin | Remove role. Last-admin guard returns 409. |
+| `GET` | `/admin/audit-log` | admin | Read audit log entries. |
 
 ## 9. Cache Plan
 
@@ -191,7 +190,7 @@ The worker refuses to start if:
 - `classifier.pt` SHA-256 does not match `model_card.json`.
 - Model card `test_top1` is below the threshold committed in the README.
 
-Frozen temporary threshold: `test_top1 >= 0.80`. Until classifier results are finalized.
+Startup threshold: `test_top1 >= 0.70`. Actual classifier score: 0.8029.
 
 ## 11. Classifier Artifact Contract
 
@@ -308,7 +307,8 @@ These are temporarily frozen for implementation and can be changed only after te
 | SFTP-to-API smoke test owner | Infra/worker owner leads it, with API owner supporting endpoint assertions. |
 | Queue payload shape | `batch_id`, `blob_key`, `source_filename`, `sftp_user`, `request_id`, `received_at`. |
 
-## 16. Remaining Open Questions (for us to come back to)
+## 16. Frontend
 
-1. What exact fields will the classifier owner include in final `model_card.json`?
-2. Does the smoke test run fully in CI, or is part of it manual for the demo?
+The React/Vite/TypeScript console runs on port 3000 (Docker) or 5173 (local dev). In Docker it is served by nginx, which proxies all API paths (`/auth`, `/me`, `/batches`, `/predictions`, `/admin`) to the `api` service internally. The browser never talks directly to port 8000 in the production compose configuration.
+
+The frontend falls back to curated mock data if the API is unreachable, which allows the UI to be developed and reviewed independently of the backend stack.

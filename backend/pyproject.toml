@@ -37,7 +37,7 @@ worker-ml = [
   "rq>=2.8.0",
   "torch>=2.12.0",
   "torchvision>=0.27.0",
-  "pillow>=12.2.0",
+  "pillow>=12.3.0",
 ]
 
 [dependency-groups]
